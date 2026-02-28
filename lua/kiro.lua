@@ -2,7 +2,7 @@
 local M = {}
 
 local DEFAULT_CONFIG = {
-	default_commands = false,
+	register_commands = false,
 	split = "vsplit",
 }
 
@@ -53,8 +53,8 @@ end
 
 -- Validate configuration
 local function validate_config(config)
-	if config.default_commands and not type(config.default_commands) ~= "boolean" then
-		return false, "default_commands from be a boolean"
+	if config.register_commands and not type(config.register_commands) ~= "boolean" then
+		return false, "register_commands from be a boolean"
 	end
 	if config.split and not vim.tbl_contains({ "split", "vsplit" }, config.split) then
 		return false, "split must be one of split|vsplit"
@@ -78,7 +78,7 @@ function M.setup(opts)
 	state.config = config
 	state.initialized = true
 
-	if state.default_commands then
+	if state.register_commands then
 		M.register_command("KiroBuffer", "")
 		M.register_command("KiroChat", "")
 		M.register_command("KiroExplain", "Explain the code in this context")

@@ -15,8 +15,8 @@ Neovim plugin for [Kiro AI](https://kiro.ai) chat integration with minimal depen
 {
   'seagoj/kiro.nvim',
   opts = {
-    default_commands = true,  -- Enable default commands (default: false)
-    split = 'vsplit',         -- Split direction: 'split' or 'vsplit' (default: 'vsplit')
+    register_commands = false,  -- Enable default commands (default: false)
+    split = 'vsplit',          -- Split direction: 'split' or 'vsplit' (default: 'vsplit')
   }
 }
 ```
@@ -28,8 +28,8 @@ use {
   'seagoj/kiro.nvim',
   config = function()
     require('kiro').setup({
-      default_commands = true,  -- Enable default commands (default: false)
-      split = 'vsplit',         -- Split direction: 'split' or 'vsplit' (default: 'vsplit')
+      register_commands = false,  -- Enable default commands (default: false)
+      split = 'vsplit',          -- Split direction: 'split' or 'vsplit' (default: 'vsplit')
     })
   end
 }
@@ -43,15 +43,15 @@ Plug 'seagoj/kiro.nvim'
 " In your init.vim, after plug#end()
 lua << EOF
 require('kiro').setup({
-  default_commands = true,  -- Enable default commands (default: false)
-  split = 'vsplit',         -- Split direction: 'split' or 'vsplit' (default: 'vsplit')
+  register_commands = false,  -- Enable default commands (default: false)
+  split = 'vsplit',          -- Split direction: 'split' or 'vsplit' (default: 'vsplit')
 })
 EOF
 ```
 
 ## Configuration
 
-- `default_commands` (boolean, default: `false`) - When enabled, automatically registers all Kiro commands (`:KiroBuffer`, `:KiroChat`, `:KiroExplain`, `:KiroFix`, `:KiroOptimize`, `:KiroRefactor`). When disabled, you can manually register only the commands you want using `require('kiro').register_command()`.
+- `register_commands` (boolean, default: `false`) - When enabled, automatically registers all Kiro commands (`:KiroBuffer`, `:KiroChat`, `:KiroExplain`, `:KiroFix`, `:KiroOptimize`, `:KiroRefactor`). When disabled, you can manually register only the commands you want using `require('kiro').register_command()`.
 - `split` (string, default: `'vsplit'`) - Terminal split direction. Options: `'split'` (horizontal) or `'vsplit'` (vertical).
 
 ## Commands
