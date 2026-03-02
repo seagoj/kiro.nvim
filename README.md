@@ -83,6 +83,7 @@ All commands support visual selection ranges. Select lines in visual mode and ru
 ## Roadmap
 - [ ] Reuse terminal windows
 - [ ] Optional toggleterm integration
+- [ ] Consume and use any lsps from .kiro/settings/lsp.json
 
 ## License
 
