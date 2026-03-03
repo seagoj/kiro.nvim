@@ -4,12 +4,15 @@ local M = {}
 
 --- Run health checks
 function M.check()
-	vim.health.start("kiro.nvim")
+	-- Support both new (0.10+) and old health API
+	local health = vim.health or require("health")
+	
+	health.start("kiro.nvim")
 
 	if vim.fn.executable("kiro-cli") == 1 then
-		vim.health.ok("kiro-cli found in PATH")
+		health.ok("kiro-cli found in PATH")
 	else
-		vim.health.error("kiro-cli not found", { "Install from https://kiro.ai" })
+		health.error("kiro-cli not found", { "Install from https://kiro.ai" })
 	end
 end
 
