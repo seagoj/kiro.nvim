@@ -156,6 +156,15 @@ end
 kiro.send_from_history(-1)  -- Send most recent
 kiro.send_from_history(1)   -- Send oldest
 
+-- Send with multiple files
+kiro.send_with_files('Explain these files', {
+  'lua/kiro/init.lua',
+  'lua/kiro/config.lua',
+})
+
+-- Clear terminal and history
+kiro.clear_terminal()
+
 -- Clear history
 kiro.clear_history()
 ```

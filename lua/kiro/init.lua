@@ -69,6 +69,15 @@ function M.close_terminal()
 	Terminal.close()
 end
 
+--- Clear the Kiro terminal (close and clear history)
+function M.clear_terminal()
+	Logger.debug("Clearing terminal")
+	Terminal.close()
+	local History = require("kiro.history")
+	History.clear()
+	Logger.info("Terminal cleared")
+end
+
 --- Resend the last message to Kiro
 function M.resend()
 	if not state.initialized then
@@ -132,6 +141,22 @@ function M.send_from_history(index)
 	local message = history[index]
 	Logger.debug("Sending from history [%d]: %s", index, message)
 	local success, err = Terminal.open(message, state.config)
+	if not success then
+		Logger.error(Constants.MESSAGES.FAILED_TO_OPEN, err or "unknown error")
+	end
+end
+
+--- Send message with multiple files as context
+--- @param prompt string Prompt text
+--- @param files string[] List of file paths
+function M.send_with_files(prompt, files)
+	if not state.initialized then
+		Logger.error(Constants.MESSAGES.NOT_INITIALIZED)
+		return
+	end
+
+	Logger.debug("Sending with %d files", #files)
+	local success, err = Commands.send_with_files(prompt, files, Terminal, state.config)
 	if not success then
 		Logger.error(Constants.MESSAGES.FAILED_TO_OPEN, err or "unknown error")
 	end

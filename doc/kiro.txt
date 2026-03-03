@@ -91,6 +91,15 @@ kiro.clear_history()                                        *kiro.clear_history(
 kiro.send_from_history({index})                        *kiro.send_from_history()*
     Send message from history by index (1 = oldest, -1 = newest).
 
+kiro.send_with_files({prompt}, {files})                    *kiro.send_with_files()*
+    Send message with multiple files as context.
+    Parameters: ~
+        {prompt}  (string) Prompt text
+        {files}   (table) List of file paths
+
+kiro.clear_terminal()                                      *kiro.clear_terminal()*
+    Clear terminal (close and clear history).
+
 ==============================================================================
 HEALTH CHECK                                                      *kiro-health*
 

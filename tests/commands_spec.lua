@@ -180,4 +180,35 @@ describe("kiro.commands", function()
 		terminal_stub:revert()
 		vim.fn.delete(tmpfile)
 	end)
+
+	it("sends with multiple files", function()
+		local tmpfile1 = vim.fn.tempname()
+		local tmpfile2 = vim.fn.tempname()
+		vim.fn.writefile({ "test1" }, tmpfile1)
+		vim.fn.writefile({ "test2" }, tmpfile2)
+
+		local terminal_stub = stub(mock_terminal, "open")
+		terminal_stub.returns(true, nil)
+
+		local success, err = Commands.send_with_files("Test prompt", { tmpfile1, tmpfile2 }, mock_terminal, mock_config)
+
+		assert.is_true(success)
+		assert.is_nil(err)
+		assert.stub(terminal_stub).was_called()
+		local call_args = terminal_stub.calls[1].vals
+		assert.matches(tmpfile1, call_args[1])
+		assert.matches(tmpfile2, call_args[1])
+
+		terminal_stub:revert()
+		vim.fn.delete(tmpfile1)
+		vim.fn.delete(tmpfile2)
+	end)
+
+	it("validates files in multi-file context", function()
+		local success, err = Commands.send_with_files("Test", { "/nonexistent/file.txt" }, mock_terminal, mock_config)
+
+		assert.is_false(success)
+		assert.is_not_nil(err)
+		assert.matches("not readable", err)
+	end)
 end)

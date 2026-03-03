@@ -33,6 +33,24 @@ local function build_file_context(opts)
 	return string.format("(file: %s)", file), nil
 end
 
+--- Build context for multiple files
+--- @param files string[] List of file paths
+--- @return string|nil Context string or nil if validation fails
+--- @return string|nil Error message if validation fails
+local function build_multi_file_context(files)
+	local contexts = {}
+
+	for _, file in ipairs(files) do
+		if vim.fn.filereadable(file) == 0 then
+			return nil, string.format(Constants.MESSAGES.FILE_NOT_READABLE, file)
+		end
+		table.insert(contexts, string.format("(file: %s)", file))
+	end
+
+	Logger.debug("Building context for %d files", #files)
+	return table.concat(contexts, " "), nil
+end
+
 --- Register a user command that opens Kiro chat with a prompt
 --- @param name string Command name
 --- @param prompt string|function Prompt text or function that returns prompt
@@ -60,6 +78,27 @@ function M.register(name, prompt, terminal, config)
 			Logger.error(Constants.MESSAGES.FAILED_TO_OPEN, open_err or "unknown error")
 		end
 	end, { range = true })
+end
+
+--- Send message with multiple files as context
+--- @param prompt string Prompt text
+--- @param files string[] List of file paths
+--- @param terminal table Terminal module
+--- @param config KiroConfigOptions Configuration options
+--- @return boolean success
+--- @return string|nil error
+function M.send_with_files(prompt, files, terminal, config)
+	Logger.debug("Sending with %d files", #files)
+	local context, err = build_multi_file_context(files)
+	if err then
+		Logger.error(err)
+		return false, err
+	end
+
+	local message = prompt == "" and context or prompt .. " " .. context
+
+	Logger.debug("Sending message: %s", message)
+	return terminal.open(message, config)
 end
 
 return M

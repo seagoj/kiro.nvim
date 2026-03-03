@@ -108,4 +108,14 @@ describe("kiro.setup", function()
 
 		notify_stub:revert()
 	end)
+
+	it("exposes clear_terminal function", function()
+		kiro.setup({ force_setup = true })
+		assert.is_function(kiro.clear_terminal)
+	end)
+
+	it("exposes send_with_files function", function()
+		kiro.setup({ force_setup = true })
+		assert.is_function(kiro.send_with_files)
+	end)
 end)
