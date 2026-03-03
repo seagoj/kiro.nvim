@@ -2,6 +2,10 @@
 vim.cmd([[set runtimepath=$VIMRUNTIME]])
 vim.cmd([[set packpath=/tmp/nvim/site]])
 
+-- Add luacov paths for coverage
+package.path = "/usr/local/share/lua/5.1/?.lua;/usr/local/share/lua/5.1/?/init.lua;" .. package.path
+package.cpath = "/usr/local/lib/lua/5.1/?.so;" .. package.cpath
+
 -- Load luacov for coverage if available
 pcall(function()
 	require("luacov.runner").init()
