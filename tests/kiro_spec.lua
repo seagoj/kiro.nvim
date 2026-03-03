@@ -1,4 +1,5 @@
 local kiro = require("kiro")
+local stub = require("luassert.stub")
 
 describe("kiro.setup", function()
 	before_each(function()
