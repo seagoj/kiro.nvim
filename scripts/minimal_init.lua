@@ -2,6 +2,11 @@
 vim.cmd([[set runtimepath=$VIMRUNTIME]])
 vim.cmd([[set packpath=/tmp/nvim/site]])
 
+-- Load luacov for coverage if available
+pcall(function()
+	require("luacov.runner").init()
+end)
+
 local package_root = "/tmp/nvim/site/pack"
 local install_path = package_root .. "/packer/start/plenary.nvim"
 

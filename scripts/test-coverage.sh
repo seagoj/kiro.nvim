@@ -21,7 +21,6 @@ EOF
 
 # Run tests with coverage
 nvim --headless --noplugin -u scripts/minimal_init.lua \
-  -c "lua package.loaded['luacov.runner'] = require('luacov.runner'); require('luacov.runner').init()" \
   -c "lua require('plenary.test_harness').test_directory('tests', { minimal_init = 'scripts/minimal_init.lua' })" 2>&1
 
 # Generate coverage report
