@@ -35,7 +35,9 @@ fi
 
 # Generate coverage report
 luacov
-luacov-reporter-lcov -o coverage/lcov.info
+
+# Convert to lcov format using lua directly
+lua5.1 -e "package.path='/usr/local/share/lua/5.1/?.lua;/usr/local/share/lua/5.1/?/init.lua;'..package.path; require('luacov.reporter.lcov').report()" > coverage/lcov.info
 
 # Display summary
 echo ""
