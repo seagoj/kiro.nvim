@@ -27,16 +27,16 @@ describe("kiro.setup", function()
 
 	it("validates split option", function()
 		local notify_called = false
-		local original_notify = vim.notify
-		vim.notify = function(msg, level)
+		local notify_stub = stub(vim, "notify")
+		notify_stub.invokes(function(msg, level)
 			if level == vim.log.levels.ERROR and msg:match("split") then
 				notify_called = true
 			end
-		end
+		end)
 
 		kiro.setup({ split = "invalid", force_setup = true })
 		assert.is_true(notify_called)
 
-		vim.notify = original_notify
+		notify_stub:revert()
 	end)
 end)
