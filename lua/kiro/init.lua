@@ -7,6 +7,7 @@ local Terminal = require("kiro.terminal")
 local Commands = require("kiro.commands")
 local Logger = require("kiro.logger")
 local Constants = require("kiro.constants")
+local Lsp = require("kiro.lsp")
 
 local state = {
 	config = nil,
@@ -46,6 +47,11 @@ function M.setup(opts)
 
 	for name, prompt in pairs(config.commands) do
 		M.register_command(name, prompt)
+	end
+
+	-- Setup LSP integration if enabled
+	if config.enable_lsp then
+		Lsp.setup()
 	end
 
 	Logger.debug("Kiro initialized successfully")

@@ -24,6 +24,7 @@ Neovim plugin for [Kiro AI](https://kiro.ai) chat integration with minimal depen
     commands = {},                     -- Custom commands (default: {})
     reuse_terminal = true,             -- Reuse existing terminal window (default: true)
     auto_insert_mode = true,           -- Auto enter insert mode (default: true)
+    enable_lsp = true,                 -- Enable LSP integration (default: true)
   }
 }
 ```
@@ -38,6 +39,7 @@ use {
       register_default_commands = true,  -- Enable default commands (default: true)
       split = 'vsplit',                  -- Split direction: 'split' or 'vsplit' (default: 'vsplit')
       commands = {},                     -- Custom commands (default: {})
+      enable_lsp = true,                 -- Enable LSP integration (default: true)
     })
   end
 }
@@ -54,6 +56,7 @@ require('kiro').setup({
   register_default_commands = true,  -- Enable default commands (default: true)
   split = 'vsplit',                  -- Split direction: 'split' or 'vsplit' (default: 'vsplit')
   commands = {},                     -- Custom commands (default: {})
+  enable_lsp = true,                 -- Enable LSP integration (default: true)
 })
 EOF
 ```
@@ -68,6 +71,7 @@ EOF
 - `keymaps` (table, default: `{close = "<C-q>", resend = "<C-r>"}`) - Buffer-local keymaps for the terminal. Set to `false` to disable a keymap.
 - `terminal_size` (number, optional) - Size of the terminal split in lines (for horizontal) or columns (for vertical). If not set, uses Neovim's default split size.
 - `profile` (string, optional) - kiro-cli profile to use. Corresponds to `kiro-cli chat --profile <name>`.
+- `enable_lsp` (boolean, default: `true`) - Enable automatic LSP configuration from `.kiro/settings/lsp.json`.
 - `use_toggleterm` (boolean, default: `false`) - Use [toggleterm.nvim](https://github.com/akinsho/toggleterm.nvim) for terminal management if available.
 
 ### Terminal Size
@@ -108,6 +112,29 @@ require('kiro').setup({
 ```
 
 This provides better terminal management with toggleterm's features like persistent terminals and easier toggling. Falls back to default terminal if toggleterm is not available.
+
+### LSP Integration
+
+The plugin automatically loads and configures LSP servers from `.kiro/settings/lsp.json` if present. This file is typically created by running `kiro-cli /code init` in your project.
+
+Example `.kiro/settings/lsp.json`:
+
+```json
+{
+  "lua_ls": {
+    "cmd": ["lua-language-server"],
+    "filetypes": ["lua"],
+    "root_dir": "."
+  },
+  "rust_analyzer": {
+    "cmd": ["rust-analyzer"],
+    "filetypes": ["rust"],
+    "root_dir": "."
+  }
+}
+```
+
+The plugin will automatically start these LSP servers for the configured file types when you open files in Neovim.
 
 ### Keymaps
 

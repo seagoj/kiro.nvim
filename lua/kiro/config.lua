@@ -17,6 +17,7 @@ local Constants = require("kiro.constants")
 --- @field terminal_size number|nil Size of terminal split
 --- @field profile string|nil kiro-cli profile name
 --- @field history_size number|nil Maximum command history size
+--- @field enable_lsp boolean|nil Enable LSP integration from .kiro/settings/lsp.json
 --- @field use_toggleterm boolean|nil Use toggleterm.nvim if available
 
 --- Default configuration values
@@ -37,6 +38,7 @@ M.defaults = {
 	terminal_size = nil,
 	profile = nil,
 	history_size = 50,
+	enable_lsp = true,
 	use_toggleterm = false,
 }
 
@@ -48,7 +50,7 @@ local function validate(config)
 		return "register_default_commands must be a boolean"
 	end
 	if
-		config.split ~= nil and not vim.tbl_contains({ Constants.SPLIT.HORIZONTAL, Constants.SPLIT.VERTICAL }, config.split)
+			config.split ~= nil and not vim.tbl_contains({ Constants.SPLIT.HORIZONTAL, Constants.SPLIT.VERTICAL }, config.split)
 	then
 		return "split must be one of split|vsplit"
 	end
@@ -71,11 +73,11 @@ local function validate(config)
 		return "terminal_size must be a number"
 	end
 	if
-		config.terminal_size ~= nil
-		and (
-			config.terminal_size < Constants.LIMITS.MIN_TERMINAL_SIZE
-			or config.terminal_size > Constants.LIMITS.MAX_TERMINAL_SIZE
-		)
+			config.terminal_size ~= nil
+			and (
+				config.terminal_size < Constants.LIMITS.MIN_TERMINAL_SIZE
+				or config.terminal_size > Constants.LIMITS.MAX_TERMINAL_SIZE
+			)
 	then
 		return string.format(
 			"terminal_size must be between %d and %d",
@@ -91,6 +93,9 @@ local function validate(config)
 	end
 	if config.history_size ~= nil and config.history_size < 1 then
 		return "history_size must be at least 1"
+	end
+	if config.enable_lsp ~= nil and type(config.enable_lsp) ~= "boolean" then
+		return "enable_lsp must be a boolean"
 	end
 	if config.use_toggleterm ~= nil and type(config.use_toggleterm) ~= "boolean" then
 		return "use_toggleterm must be a boolean"
