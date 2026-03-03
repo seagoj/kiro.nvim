@@ -50,7 +50,7 @@ local function validate(config)
 		return "register_default_commands must be a boolean"
 	end
 	if
-			config.split ~= nil and not vim.tbl_contains({ Constants.SPLIT.HORIZONTAL, Constants.SPLIT.VERTICAL }, config.split)
+		config.split ~= nil and not vim.tbl_contains({ Constants.SPLIT.HORIZONTAL, Constants.SPLIT.VERTICAL }, config.split)
 	then
 		return "split must be one of split|vsplit"
 	end
@@ -73,11 +73,11 @@ local function validate(config)
 		return "terminal_size must be a number"
 	end
 	if
-			config.terminal_size ~= nil
-			and (
-				config.terminal_size < Constants.LIMITS.MIN_TERMINAL_SIZE
-				or config.terminal_size > Constants.LIMITS.MAX_TERMINAL_SIZE
-			)
+		config.terminal_size ~= nil
+		and (
+			config.terminal_size < Constants.LIMITS.MIN_TERMINAL_SIZE
+			or config.terminal_size > Constants.LIMITS.MAX_TERMINAL_SIZE
+		)
 	then
 		return string.format(
 			"terminal_size must be between %d and %d",

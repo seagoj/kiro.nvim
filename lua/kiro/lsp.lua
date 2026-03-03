@@ -14,7 +14,7 @@ local Logger = require("kiro.logger")
 --- @return string|nil error Error message if loading fails
 function M.load_config()
 	local config_path = vim.fn.getcwd() .. "/.kiro/settings/lsp.json"
-	
+
 	if vim.fn.filereadable(config_path) == 0 then
 		Logger.debug("LSP config not found at %s", config_path)
 		return nil, nil
@@ -66,7 +66,7 @@ end
 --- @param server_config LspServerConfig Server configuration
 function M.setup_server(name, server_config)
 	Logger.debug("Setting up LSP server: %s", name)
-	
+
 	vim.api.nvim_create_autocmd("FileType", {
 		pattern = server_config.filetypes,
 		callback = function()
