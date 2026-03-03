@@ -158,7 +158,7 @@ describe("kiro.commands", function()
 	end)
 
 	it("supports function prompts", function()
-		local prompt_fn = function(opts)
+		local prompt_fn = function()
 			return "Dynamic prompt"
 		end
 

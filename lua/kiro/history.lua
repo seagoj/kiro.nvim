@@ -2,7 +2,6 @@
 --- @class KiroHistory
 local M = {}
 
-local Constants = require("kiro.constants")
 local Logger = require("kiro.logger")
 
 --- @class HistoryState

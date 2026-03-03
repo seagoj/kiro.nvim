@@ -25,7 +25,7 @@ function M.open(message, config)
 
 	-- Try to reuse existing terminal
 	if config.reuse_terminal and Window.focus_or_create(split_cmd) then
-		local success, err = Window.send_message(message)
+		local success = Window.send_message(message)
 		if success then
 			History.add(message)
 			if config.auto_insert_mode then

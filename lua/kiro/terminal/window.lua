@@ -107,9 +107,9 @@ function M.create(command, split_cmd, config)
 		end
 
 		-- Set buffer options for better UX
-		vim.bo[state.bufnr].buflisted = false
-		vim.wo[state.winid].number = false
-		vim.wo[state.winid].relativenumber = false
+		vim.bo[state.bufnr].buflisted = false -- luacheck: ignore
+		vim.wo[state.winid].number = false -- luacheck: ignore
+		vim.wo[state.winid].relativenumber = false -- luacheck: ignore
 
 		Logger.debug("Terminal created: bufnr=%d, winid=%d", state.bufnr, state.winid)
 	end)
