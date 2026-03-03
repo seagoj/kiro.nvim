@@ -1,0 +1,71 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # Get previous tag
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          
+          # Generate changelog
+          if [ -z "$PREV_TAG" ]; then
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" --no-merges)
+          else
+            CHANGELOG=$(git log ${PREV_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges)
+          fi
+          
+          # Save to file
+          echo "$CHANGELOG" > CHANGELOG.txt
+          
+          # Set output
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          body: |
+            ## Changes
+            
+            ${{ steps.changelog.outputs.changelog }}
+            
+            ## Installation
+            
+            ### lazy.nvim
+            ```lua
+            {
+              'seagoj/kiro.nvim',
+              version = '${{ github.ref_name }}',
+              opts = {}
+            }
+            ```
+            
+            ### packer.nvim
+            ```lua
+            use {
+              'seagoj/kiro.nvim',
+              tag = '${{ github.ref_name }}',
+              config = function()
+                require('kiro').setup()
+              end
+            }
+            ```
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

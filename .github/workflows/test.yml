@@ -9,14 +9,17 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        neovim-version: ['v0.9.5', 'v0.10.0', 'stable', 'nightly']
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Neovim
+      - name: Install Neovim ${{ matrix.neovim-version }}
         uses: rhysd/action-setup-vim@v1
         with:
           neovim: true
-          version: stable
+          version: ${{ matrix.neovim-version }}
 
       - name: Install plenary.nvim
         run: |
@@ -26,6 +29,26 @@ jobs:
 
       - name: Run tests
         run: ./scripts/test.sh
+
+      - name: Generate coverage
+        if: matrix.neovim-version == 'stable'
+        run: |
+          # Install luacov
+          sudo apt-get update
+          sudo apt-get install -y luarocks
+          sudo luarocks install luacov
+          sudo luarocks install luacov-reporter-lcov
+          
+          # Run tests with coverage
+          ./scripts/test-coverage.sh
+
+      - name: Upload coverage to Codecov
+        if: matrix.neovim-version == 'stable'
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage/lcov.info
+          flags: unittests
+          name: neovim-${{ matrix.neovim-version }}
 
   lint:
     runs-on: ubuntu-latest

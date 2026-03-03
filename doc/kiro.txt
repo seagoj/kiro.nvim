@@ -1,0 +1,92 @@
+*kiro.txt*  Neovim plugin for Kiro AI chat integration
+
+==============================================================================
+CONTENTS                                                        *kiro-contents*
+
+    1. Introduction ............................ |kiro-introduction|
+    2. Requirements ............................ |kiro-requirements|
+    3. Configuration ........................... |kiro-configuration|
+    4. Commands ................................ |kiro-commands|
+    5. Keymaps ................................. |kiro-keymaps|
+    6. Lua API ................................. |kiro-api|
+    7. Health Check ............................ |kiro-health|
+
+==============================================================================
+INTRODUCTION                                                *kiro-introduction*
+
+kiro.nvim is a Neovim plugin that integrates Kiro AI chat directly into your
+editor. Send file context to Kiro and receive responses in a terminal buffer.
+
+==============================================================================
+REQUIREMENTS                                                *kiro-requirements*
+
+  • Neovim 0.5+
+  • kiro-cli installed and in PATH (https://kiro.ai)
+
+==============================================================================
+CONFIGURATION                                              *kiro-configuration*
+
+Setup: >lua
+    require('kiro').setup({
+      register_default_commands = true,
+      split = 'vsplit',
+      reuse_terminal = true,
+      auto_insert_mode = true,
+      keymaps = { close = '<C-q>', resend = '<C-r>' },
+      terminal_size = nil,
+      profile = nil,
+      debug = false,
+    })
+<
+
+Options: ~
+  register_default_commands  Enable |:KiroBuffer| command (default: true)
+  split                      'split' or 'vsplit' (default: 'vsplit')
+  reuse_terminal            Reuse terminal window (default: true)
+  auto_insert_mode          Auto enter insert mode (default: true)
+  keymaps                   Buffer-local keymaps (default: {close, resend})
+  terminal_size             Split size in lines/columns (default: nil)
+  profile                   kiro-cli profile name (default: nil)
+  debug                     Enable debug logging (default: false)
+
+==============================================================================
+COMMANDS                                                        *kiro-commands*
+
+:KiroBuffer                 Open Kiro chat with current file context
+:[range]KiroBuffer          Open Kiro chat with selected lines
+
+Custom commands: >lua
+    require('kiro').register_command('KiroExplain', 'Explain the code in')
+<
+
+==============================================================================
+KEYMAPS                                                          *kiro-keymaps*
+
+In Kiro terminal (normal mode):
+  <C-q>                     Close terminal
+  <C-r>                     Resend last message
+
+==============================================================================
+LUA API                                                              *kiro-api*
+
+kiro.setup({opts})                                              *kiro.setup()*
+    Initialize plugin with configuration.
+
+kiro.register_command({name}, {prompt})              *kiro.register_command()*
+    Register custom command.
+
+kiro.close_terminal()                                    *kiro.close_terminal()*
+    Close the terminal window.
+
+kiro.resend()                                                      *kiro.resend()*
+    Resend last message.
+
+==============================================================================
+HEALTH CHECK                                                      *kiro-health*
+
+Check kiro-cli installation: >vim
+    :checkhealth kiro
+<
+
+==============================================================================
+vim:tw=78:ts=8:ft=help:norl:

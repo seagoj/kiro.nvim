@@ -14,13 +14,15 @@ describe("kiro.terminal.window", function()
 	end)
 
 	it("creates terminal window", function()
-		Window.create("echo test", "vsplit")
+		local config = { keymaps = { close = "<C-q>", resend = "<C-r>" } }
+		Window.create("echo test", "vsplit", config)
 		assert.is_true(Window.is_buffer_valid())
 		assert.is_true(Window.is_window_valid())
 	end)
 
 	it("closes terminal window", function()
-		Window.create("echo test", "vsplit")
+		local config = { keymaps = { close = "<C-q>", resend = "<C-r>" } }
+		Window.create("echo test", "vsplit", config)
 		Window.close()
 		assert.is_false(Window.is_buffer_valid())
 		assert.is_false(Window.is_window_valid())
@@ -28,5 +30,18 @@ describe("kiro.terminal.window", function()
 
 	it("focus_or_create returns false when no buffer", function()
 		assert.is_false(Window.focus_or_create("vsplit"))
+	end)
+
+	it("tracks last message", function()
+		local config = { keymaps = { close = "<C-q>", resend = "<C-r>" } }
+		Window.create("kiro-cli chat 'test'", "vsplit", config)
+
+		-- Send a message
+		Window.send_message("test message")
+		assert.equals("test message", Window.get_last_message())
+
+		-- Close should clear it
+		Window.close()
+		assert.is_nil(Window.get_last_message())
 	end)
 end)
