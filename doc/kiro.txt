@@ -47,6 +47,7 @@ Options: ~
   keymaps                   Buffer-local keymaps (default: {close, resend})
   terminal_size             Split size in lines/columns (default: nil)
   profile                   kiro-cli profile name (default: nil)
+  history_size              Max command history (default: 50)
   debug                     Enable debug logging (default: false)
 
 ==============================================================================
@@ -80,6 +81,15 @@ kiro.close_terminal()                                    *kiro.close_terminal()*
 
 kiro.resend()                                                      *kiro.resend()*
     Resend last message.
+
+kiro.get_history()                                            *kiro.get_history()*
+    Get command history as array of strings.
+
+kiro.clear_history()                                        *kiro.clear_history()*
+    Clear command history.
+
+kiro.send_from_history({index})                        *kiro.send_from_history()*
+    Send message from history by index (1 = oldest, -1 = newest).
 
 ==============================================================================
 HEALTH CHECK                                                      *kiro-health*

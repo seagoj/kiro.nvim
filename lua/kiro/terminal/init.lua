@@ -6,6 +6,7 @@ local Shell = require("kiro.terminal.shell")
 local Window = require("kiro.terminal.window")
 local Logger = require("kiro.logger")
 local Constants = require("kiro.constants")
+local History = require("kiro.history")
 
 --- Open new terminal with kiro-cli
 --- @param message string Message to send to kiro-cli
@@ -26,6 +27,7 @@ function M.open(message, config)
 	if config.reuse_terminal and Window.focus_or_create(split_cmd) then
 		local success, err = Window.send_message(message)
 		if success then
+			History.add(message)
 			if config.auto_insert_mode then
 				vim.cmd("startinsert")
 			end
@@ -45,6 +47,7 @@ function M.open(message, config)
 	end
 
 	Window.send_message(message) -- Store the initial message
+	History.add(message)
 	if config.auto_insert_mode then
 		vim.cmd("startinsert")
 	end

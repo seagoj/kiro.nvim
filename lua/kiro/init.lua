@@ -31,6 +31,10 @@ function M.setup(opts)
 		Logger.debug("Configuration: %s", vim.inspect(config))
 	end
 
+	-- Set history size
+	local History = require("kiro.history")
+	History.set_max_size(config.history_size)
+
 	state.config = config
 	state.initialized = true
 
@@ -82,6 +86,54 @@ function M.resend()
 		end
 	else
 		Logger.warn(Constants.MESSAGES.NO_PREVIOUS_MESSAGE)
+	end
+end
+
+--- Get command history
+--- @return string[] List of previous messages
+function M.get_history()
+	local History = require("kiro.history")
+	return History.get_all()
+end
+
+--- Clear command history
+function M.clear_history()
+	local History = require("kiro.history")
+	History.clear()
+	Logger.info("Command history cleared")
+end
+
+--- Send a message from history
+--- @param index number History index (1 = oldest, -1 = newest)
+function M.send_from_history(index)
+	if not state.initialized then
+		Logger.error(Constants.MESSAGES.NOT_INITIALIZED)
+		return
+	end
+
+	local History = require("kiro.history")
+	local history = History.get_all()
+
+	if #history == 0 then
+		Logger.warn("No command history")
+		return
+	end
+
+	-- Handle negative indices
+	if index < 0 then
+		index = #history + index + 1
+	end
+
+	if index < 1 or index > #history then
+		Logger.error("Invalid history index: %d (history size: %d)", index, #history)
+		return
+	end
+
+	local message = history[index]
+	Logger.debug("Sending from history [%d]: %s", index, message)
+	local success, err = Terminal.open(message, state.config)
+	if not success then
+		Logger.error(Constants.MESSAGES.FAILED_TO_OPEN, err or "unknown error")
 	end
 end
 

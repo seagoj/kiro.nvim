@@ -16,6 +16,7 @@ local Constants = require("kiro.constants")
 --- @field keymaps table<string, string|boolean>|nil Buffer-local keymaps
 --- @field terminal_size number|nil Size of terminal split
 --- @field profile string|nil kiro-cli profile name
+--- @field history_size number|nil Maximum command history size
 
 --- Default configuration values
 --- @type KiroConfigOptions
@@ -34,6 +35,7 @@ M.defaults = {
 	},
 	terminal_size = nil,
 	profile = nil,
+	history_size = 50,
 }
 
 --- Validate configuration options
@@ -79,6 +81,12 @@ local function validate(config)
 	end
 	if config.profile ~= nil and type(config.profile) ~= "string" then
 		return "profile must be a string"
+	end
+	if config.history_size ~= nil and type(config.history_size) ~= "number" then
+		return "history_size must be a number"
+	end
+	if config.history_size ~= nil and config.history_size < 1 then
+		return "history_size must be at least 1"
 	end
 	return nil
 end

@@ -145,6 +145,19 @@ kiro.close_terminal()
 
 -- Resend the last message
 kiro.resend()
+
+-- Get command history
+local history = kiro.get_history()
+for i, msg in ipairs(history) do
+  print(i, msg)
+end
+
+-- Send from history (1 = oldest, -1 = newest)
+kiro.send_from_history(-1)  -- Send most recent
+kiro.send_from_history(1)   -- Send oldest
+
+-- Clear history
+kiro.clear_history()
 ```
 
 ## Custom Commands
@@ -285,6 +298,7 @@ For more help:
 
 ## Roadmap
 - [x] Reuse terminal windows
+- [x] Command history/recall
 - [ ] Optional toggleterm integration
 - [ ] Consume and use any lsps from .kiro/settings/lsp.json
 
