@@ -1,0 +1,43 @@
+local Config = require("kiro.config")
+
+describe("kiro.config", function()
+	it("returns defaults when no opts provided", function()
+		local config, err = Config.init()
+		assert.is_nil(err)
+		assert.equals("vsplit", config.split)
+		assert.is_true(config.register_default_commands)
+		assert.is_true(config.reuse_terminal)
+		assert.is_true(config.auto_insert_mode)
+	end)
+
+	it("merges user options with defaults", function()
+		local config, err = Config.init({ split = "split" })
+		assert.is_nil(err)
+		assert.equals("split", config.split)
+		assert.is_true(config.register_default_commands)
+	end)
+
+	it("validates split option", function()
+		local _, err = Config.init({ split = "invalid" })
+		assert.is_not_nil(err)
+		assert.matches("split", err)
+	end)
+
+	it("validates boolean options", function()
+		local _, err = Config.init({ reuse_terminal = "yes" })
+		assert.is_not_nil(err)
+		assert.matches("reuse_terminal", err)
+	end)
+
+	it("accepts valid configuration", function()
+		local config, err = Config.init({
+			split = "split",
+			reuse_terminal = false,
+			auto_insert_mode = false,
+			register_default_commands = false,
+		})
+		assert.is_nil(err)
+		assert.equals("split", config.split)
+		assert.is_false(config.reuse_terminal)
+	end)
+end)

@@ -51,6 +51,7 @@ end
 function M.register_command(name, prompt)
 	if not state.initialized then
 		vim.notify("Kiro not initialized. Call setup() first", vim.log.levels.ERROR)
+		return
 	end
 	Commands.register(name, prompt, Terminal, state.config)
 end

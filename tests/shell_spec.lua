@@ -1,0 +1,30 @@
+local Shell = require("kiro.terminal.shell")
+
+describe("kiro.terminal.shell", function()
+	describe("escape_arg", function()
+		it("escapes single quotes", function()
+			assert.equals("test'\\''string", Shell.escape_arg("test'string"))
+		end)
+
+		it("handles multiple single quotes", function()
+			assert.equals("it'\\''s'\\''fine", Shell.escape_arg("it's'fine"))
+		end)
+
+		it("leaves strings without quotes unchanged", function()
+			assert.equals("test string", Shell.escape_arg("test string"))
+		end)
+	end)
+
+	describe("build_command", function()
+		it("builds kiro-cli command", function()
+			local cmd = Shell.build_command("test message")
+			assert.matches("kiro%-cli chat", cmd)
+			assert.matches("test message", cmd)
+		end)
+
+		it("escapes quotes in message", function()
+			local cmd = Shell.build_command("test's message")
+			assert.matches("test'\\''s message", cmd)
+		end)
+	end)
+end)

@@ -12,13 +12,13 @@ local state = {
 --- Check if terminal buffer is still valid
 --- @return boolean True if buffer is valid
 function M.is_buffer_valid()
-	return state.bufnr and vim.api.nvim_buf_is_valid(state.bufnr)
+	return state.bufnr ~= nil and vim.api.nvim_buf_is_valid(state.bufnr)
 end
 
 --- Check if terminal window is still open
 --- @return boolean True if window is valid
 function M.is_window_valid()
-	return state.winid and vim.api.nvim_win_is_valid(state.winid)
+	return state.winid ~= nil and vim.api.nvim_win_is_valid(state.winid)
 end
 
 --- Focus existing terminal window or create new split

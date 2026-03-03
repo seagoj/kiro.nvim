@@ -1,0 +1,68 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Neovim
+        uses: rhysd/action-setup-nvim@v1
+        with:
+          neovim: true
+          version: stable
+
+      - name: Install plenary.nvim
+        run: |
+          mkdir -p /tmp/nvim/site/pack/packer/start
+          git clone --depth 1 https://github.com/nvim-lua/plenary.nvim \
+            /tmp/nvim/site/pack/packer/start/plenary.nvim
+
+      - name: Run tests
+        run: ./scripts/test.sh
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install stylua
+        uses: JohnnyMorganz/stylua-action@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          version: latest
+          args: --check .
+
+      - name: Install luacheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y luarocks
+          sudo luarocks install luacheck
+
+      - name: Run luacheck
+        run: luacheck .
+
+  health:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Neovim
+        uses: rhysd/action-setup-nvim@v1
+        with:
+          neovim: true
+          version: stable
+
+      - name: Run health check
+        run: |
+          nvim --headless -c "lua vim.health = require('vim.health')" \
+            -c "lua require('kiro.health').check()" \
+            -c "quit" 2>&1 | tee health.log
+          # Health check will warn about missing kiro-cli, which is expected
+          echo "Health check completed"
