@@ -2,15 +2,23 @@ local Health = require("kiro.health")
 local stub = require("luassert.stub")
 
 describe("kiro.health", function()
+	-- Ensure vim.health exists for testing
+	before_each(function()
+		if not vim.health then
+			vim.health = {
+				start = function() end,
+				ok = function() end,
+				error = function() end,
+			}
+		end
+	end)
+
 	it("reports success when kiro-cli is found", function()
 		local executable_stub = stub(vim.fn, "executable")
 		executable_stub.returns(1)
 
-		-- Support both new (0.10+) and old health API
-		local health = vim.health or require("health")
-
 		local ok_called = false
-		local ok_stub = stub(health, "ok")
+		local ok_stub = stub(vim.health, "ok")
 		ok_stub.invokes(function(msg)
 			if msg:match("kiro%-cli found") then
 				ok_called = true
@@ -28,11 +36,8 @@ describe("kiro.health", function()
 		local executable_stub = stub(vim.fn, "executable")
 		executable_stub.returns(0)
 
-		-- Support both new (0.10+) and old health API
-		local health = vim.health or require("health")
-
 		local error_called = false
-		local error_stub = stub(health, "error")
+		local error_stub = stub(vim.health, "error")
 		error_stub.invokes(function(msg)
 			if msg:match("kiro%-cli not found") then
 				error_called = true
