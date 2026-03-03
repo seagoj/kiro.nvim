@@ -8,7 +8,7 @@ describe("kiro.health", function()
 
 		-- Support both new (0.10+) and old health API
 		local health = vim.health or require("health")
-		
+
 		local ok_called = false
 		local ok_stub = stub(health, "ok")
 		ok_stub.invokes(function(msg)
