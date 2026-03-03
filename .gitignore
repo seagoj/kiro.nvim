@@ -3,3 +3,4 @@ coverage/
 *.stats.out
 *.report.out
 .luacov
+docs
