@@ -7,9 +7,11 @@ package.path = "/usr/local/share/lua/5.1/?.lua;/usr/local/share/lua/5.1/?/init.l
 package.cpath = "/usr/local/lib/lua/5.1/?.so;" .. package.cpath
 
 -- Load luacov for coverage if available
-pcall(function()
-	require("luacov.runner").init()
-end)
+local ok, runner = pcall(require, "luacov.runner")
+if ok then
+	runner.init()
+	runner.tick = true
+end
 
 local package_root = "/tmp/nvim/site/pack"
 local install_path = package_root .. "/packer/start/plenary.nvim"
