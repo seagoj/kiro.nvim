@@ -17,6 +17,7 @@ local Constants = require("kiro.constants")
 --- @field terminal_size number|nil Size of terminal split
 --- @field profile string|nil kiro-cli profile name
 --- @field history_size number|nil Maximum command history size
+--- @field use_toggleterm boolean|nil Use toggleterm.nvim if available
 
 --- Default configuration values
 --- @type KiroConfigOptions
@@ -36,6 +37,7 @@ M.defaults = {
 	terminal_size = nil,
 	profile = nil,
 	history_size = 50,
+	use_toggleterm = false,
 }
 
 --- Validate configuration options
@@ -89,6 +91,9 @@ local function validate(config)
 	end
 	if config.history_size ~= nil and config.history_size < 1 then
 		return "history_size must be at least 1"
+	end
+	if config.use_toggleterm ~= nil and type(config.use_toggleterm) ~= "boolean" then
+		return "use_toggleterm must be a boolean"
 	end
 	return nil
 end

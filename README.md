@@ -68,6 +68,7 @@ EOF
 - `keymaps` (table, default: `{close = "<C-q>", resend = "<C-r>"}`) - Buffer-local keymaps for the terminal. Set to `false` to disable a keymap.
 - `terminal_size` (number, optional) - Size of the terminal split in lines (for horizontal) or columns (for vertical). If not set, uses Neovim's default split size.
 - `profile` (string, optional) - kiro-cli profile to use. Corresponds to `kiro-cli chat --profile <name>`.
+- `use_toggleterm` (boolean, default: `false`) - Use [toggleterm.nvim](https://github.com/akinsho/toggleterm.nvim) for terminal management if available.
 
 ### Terminal Size
 
@@ -95,6 +96,18 @@ require('kiro').setup({
   profile = 'work',  -- Uses: kiro-cli chat --profile work
 })
 ```
+
+### Toggleterm Integration
+
+If you have [toggleterm.nvim](https://github.com/akinsho/toggleterm.nvim) installed, you can use it for terminal management:
+
+```lua
+require('kiro').setup({
+  use_toggleterm = true,
+})
+```
+
+This provides better terminal management with toggleterm's features like persistent terminals and easier toggling. Falls back to default terminal if toggleterm is not available.
 
 ### Keymaps
 
@@ -308,8 +321,8 @@ For more help:
 ## Roadmap
 - [x] Reuse terminal windows
 - [x] Command history/recall
-- [ ] Optional toggleterm integration
-- [ ] Consume and use any lsps from .kiro/settings/lsp.json
+- [x] Optional toggleterm integration
+- [x] Consume and use any lsps from .kiro/settings/lsp.json
 
 ## License
 
