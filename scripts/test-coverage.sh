@@ -20,6 +20,9 @@ return {
 EOF
 
 # Run tests with coverage
+export LUA_PATH="/usr/local/share/lua/5.1/?.lua;/usr/local/share/lua/5.1/?/init.lua;;"
+export LUA_CPATH="/usr/local/lib/lua/5.1/?.so;;"
+
 nvim --headless --noplugin -u scripts/minimal_init.lua \
   -c "lua require('plenary.test_harness').test_directory('tests', { minimal_init = 'scripts/minimal_init.lua' })" 2>&1
 
