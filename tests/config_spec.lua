@@ -23,6 +23,22 @@ describe("kiro.config", function()
 		assert.matches("split", err)
 	end)
 
+	it("accepts float split option", function()
+		local config, err = Config.init({ split = "float" })
+		assert.is_nil(err)
+		assert.equals("float", config.split)
+	end)
+
+	it("validates float_opts", function()
+		local config, err = Config.init({
+			split = "float",
+			float_opts = { width = 0.9, height = 0.9 },
+		})
+		assert.is_nil(err)
+		assert.equals(0.9, config.float_opts.width)
+		assert.equals(0.9, config.float_opts.height)
+	end)
+
 	it("validates boolean options", function()
 		local _, err = Config.init({ reuse_terminal = "yes" })
 		assert.is_not_nil(err)

@@ -8,7 +8,7 @@ local Constants = require("kiro.constants")
 --- @field commands table<string, string|function>|nil Custom commands with prompts
 --- @field default_commands table<string, string>|nil Default commands
 --- @field register_default_commands boolean|nil Enable default commands
---- @field split string|nil Split direction: 'split' or 'vsplit'
+--- @field split string|nil Split direction: 'split', 'vsplit', or 'float'
 --- @field reuse_terminal boolean|nil Reuse existing terminal
 --- @field auto_insert_mode boolean|nil Auto enter insert mode
 --- @field force_setup boolean|nil Force setup even if already initialized
@@ -19,6 +19,7 @@ local Constants = require("kiro.constants")
 --- @field history_size number|nil Maximum command history size
 --- @field enable_lsp boolean|nil Enable LSP integration from .kiro/settings/lsp.json
 --- @field use_toggleterm boolean|nil Use toggleterm.nvim if available
+--- @field float_opts table|nil Floating window options (width, height, row, col)
 
 --- Default configuration values
 --- @type KiroConfigOptions
@@ -40,6 +41,12 @@ M.defaults = {
 	history_size = 50,
 	enable_lsp = true,
 	use_toggleterm = false,
+	float_opts = {
+		width = 0.8,
+		height = 0.8,
+		row = nil,
+		col = nil,
+	},
 }
 
 --- Validate configuration options
@@ -50,9 +57,13 @@ local function validate(config)
 		return "register_default_commands must be a boolean"
 	end
 	if
-		config.split ~= nil and not vim.tbl_contains({ Constants.SPLIT.HORIZONTAL, Constants.SPLIT.VERTICAL }, config.split)
+		config.split ~= nil
+		and not vim.tbl_contains(
+			{ Constants.SPLIT.HORIZONTAL, Constants.SPLIT.VERTICAL, Constants.SPLIT.FLOAT },
+			config.split
+		)
 	then
-		return "split must be one of split|vsplit"
+		return "split must be one of split|vsplit|float"
 	end
 	if config.reuse_terminal ~= nil and type(config.reuse_terminal) ~= "boolean" then
 		return "reuse_terminal must be a boolean"
@@ -99,6 +110,9 @@ local function validate(config)
 	end
 	if config.use_toggleterm ~= nil and type(config.use_toggleterm) ~= "boolean" then
 		return "use_toggleterm must be a boolean"
+	end
+	if config.float_opts ~= nil and type(config.float_opts) ~= "table" then
+		return "float_opts must be a table"
 	end
 	return nil
 end

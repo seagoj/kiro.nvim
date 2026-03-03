@@ -14,6 +14,7 @@ M.LOG_LEVELS = {
 M.SPLIT = {
 	HORIZONTAL = "split",
 	VERTICAL = "vsplit",
+	FLOAT = "float",
 }
 
 --- Default keymaps
@@ -29,7 +30,7 @@ M.MESSAGES = {
 	NO_FILE = "No file in current buffer",
 	FILE_NOT_READABLE = "File not readable: %s",
 	INVALID_RANGE = "Invalid line range: %d-%d (file has %d lines)",
-	KIRO_CLI_NOT_FOUND = "kiro-cli not found in PATH",
+	KIRO_CLI_NOT_FOUND = "kiro-cli not found in PATH. Install from https://kiro.ai",
 	NOT_INITIALIZED = "Kiro not initialized. Call setup() first",
 	TERMINAL_REUSE_FAILED = "Failed to send to existing terminal, creating new one",
 	NO_PREVIOUS_MESSAGE = "No previous message to resend",
@@ -39,12 +40,15 @@ M.MESSAGES = {
 	FAILED_TO_CREATE = "Failed to create terminal: %s",
 	FAILED_TO_OPEN = "Failed to open terminal: %s",
 	FAILED_TO_RESEND = "Failed to resend: %s",
+	FILE_TOO_LARGE = "File too large (%d KB). Maximum size: %d KB",
+	TIMEOUT = "Operation timed out after %d seconds",
 }
 
 --- Validation limits
 M.LIMITS = {
 	MIN_TERMINAL_SIZE = 1,
 	MAX_TERMINAL_SIZE = 999,
+	MAX_FILE_SIZE_KB = 1024, -- 1MB
 }
 
 --- CLI commands

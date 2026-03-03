@@ -19,7 +19,9 @@ local state = {
 function M.setup(opts)
 	local config, err = Config.init(opts)
 	if err ~= nil then
-		Logger.error("Invalid config: %s", err)
+		local error_msg = "Invalid config: " .. err
+		Logger.error(error_msg)
+		vim.notify(error_msg, vim.log.levels.ERROR, { title = "Kiro" })
 		return
 	end
 	if not config.force_setup and state.initialized then
@@ -51,7 +53,14 @@ function M.setup(opts)
 
 	-- Setup LSP integration if enabled
 	if config.enable_lsp then
-		Lsp.setup()
+		local lsp_ok = Lsp.setup()
+
+		-- Register LSP status command only if LSP setup succeeded
+		if lsp_ok then
+			vim.api.nvim_create_user_command("KiroLspStatus", function()
+				Lsp.show_status()
+			end, { desc = "Show Kiro LSP server status" })
+		end
 	end
 
 	Logger.debug("Kiro initialized successfully")
@@ -88,6 +97,7 @@ end
 function M.resend()
 	if not state.initialized then
 		Logger.error(Constants.MESSAGES.NOT_INITIALIZED)
+		vim.notify(Constants.MESSAGES.NOT_INITIALIZED, vim.log.levels.ERROR, { title = "Kiro" })
 		return
 	end
 
@@ -97,10 +107,13 @@ function M.resend()
 		Logger.debug("Resending last message")
 		local success, err = Terminal.open(last, state.config)
 		if not success then
-			Logger.error(Constants.MESSAGES.FAILED_TO_RESEND, err or "unknown error")
+			local error_msg = string.format(Constants.MESSAGES.FAILED_TO_RESEND, err or "unknown error")
+			Logger.error(error_msg)
+			vim.notify(error_msg, vim.log.levels.ERROR, { title = "Kiro" })
 		end
 	else
 		Logger.warn(Constants.MESSAGES.NO_PREVIOUS_MESSAGE)
+		vim.notify(Constants.MESSAGES.NO_PREVIOUS_MESSAGE, vim.log.levels.WARN, { title = "Kiro" })
 	end
 end
 
@@ -123,6 +136,7 @@ end
 function M.send_from_history(index)
 	if not state.initialized then
 		Logger.error(Constants.MESSAGES.NOT_INITIALIZED)
+		vim.notify(Constants.MESSAGES.NOT_INITIALIZED, vim.log.levels.ERROR, { title = "Kiro" })
 		return
 	end
 
@@ -131,6 +145,7 @@ function M.send_from_history(index)
 
 	if #history == 0 then
 		Logger.warn("No command history")
+		vim.notify("No command history", vim.log.levels.WARN, { title = "Kiro" })
 		return
 	end
 
@@ -140,7 +155,9 @@ function M.send_from_history(index)
 	end
 
 	if index < 1 or index > #history then
-		Logger.error("Invalid history index: %d (history size: %d)", index, #history)
+		local error_msg = string.format("Invalid history index: %d (history size: %d)", index, #history)
+		Logger.error(error_msg)
+		vim.notify(error_msg, vim.log.levels.ERROR, { title = "Kiro" })
 		return
 	end
 
@@ -148,7 +165,9 @@ function M.send_from_history(index)
 	Logger.debug("Sending from history [%d]: %s", index, message)
 	local success, err = Terminal.open(message, state.config)
 	if not success then
-		Logger.error(Constants.MESSAGES.FAILED_TO_OPEN, err or "unknown error")
+		local error_msg = string.format(Constants.MESSAGES.FAILED_TO_OPEN, err or "unknown error")
+		Logger.error(error_msg)
+		vim.notify(error_msg, vim.log.levels.ERROR, { title = "Kiro" })
 	end
 end
 
@@ -158,14 +177,34 @@ end
 function M.send_with_files(prompt, files)
 	if not state.initialized then
 		Logger.error(Constants.MESSAGES.NOT_INITIALIZED)
+		vim.notify(Constants.MESSAGES.NOT_INITIALIZED, vim.log.levels.ERROR, { title = "Kiro" })
 		return
 	end
 
 	Logger.debug("Sending with %d files", #files)
 	local success, err = Commands.send_with_files(prompt, files, Terminal, state.config)
 	if not success then
-		Logger.error(Constants.MESSAGES.FAILED_TO_OPEN, err or "unknown error")
+		local error_msg = string.format(Constants.MESSAGES.FAILED_TO_OPEN, err or "unknown error")
+		Logger.error(error_msg)
+		vim.notify(error_msg, vim.log.levels.ERROR, { title = "Kiro" })
 	end
+end
+
+--- Get LSP server status
+--- @return table Status of all configured LSP servers
+function M.lsp_status()
+	return Lsp.get_status()
+end
+
+--- Show LSP status in floating window
+function M.lsp_show_status()
+	Lsp.show_status()
+end
+
+--- Detect available LSP servers
+--- @return table Detected LSP servers
+function M.lsp_detect()
+	return Lsp.detect_servers()
 end
 
 return M

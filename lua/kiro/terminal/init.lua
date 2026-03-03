@@ -30,6 +30,7 @@ end
 --- @return string|nil error Error message if failed
 function M.open(message, config)
 	if vim.fn.executable(Constants.CLI.EXECUTABLE) == 0 then
+		vim.notify(Constants.MESSAGES.KIRO_CLI_NOT_FOUND, vim.log.levels.ERROR, { title = "Kiro" })
 		return false, Constants.MESSAGES.KIRO_CLI_NOT_FOUND
 	end
 
@@ -40,7 +41,7 @@ function M.open(message, config)
 	Logger.info(Constants.MESSAGES.LOADING)
 
 	-- Try to reuse existing terminal (only for default backend)
-	if config.reuse_terminal and backend == Window and Window.focus_or_create(split_cmd) then
+	if config.reuse_terminal and backend == Window and Window.focus_or_create(split_cmd, config) then
 		local success = Window.send_message(message)
 		if success then
 			History.add(message)
@@ -59,6 +60,8 @@ function M.open(message, config)
 		local success, err = backend.open(message, config)
 		if success then
 			History.add(message)
+		else
+			vim.notify(err or "Failed to open terminal", vim.log.levels.ERROR, { title = "Kiro" })
 		end
 		return success, err
 	end
@@ -68,6 +71,7 @@ function M.open(message, config)
 	Logger.debug("Creating terminal with command: %s", command)
 	local success, err = Window.create(command, split_cmd, config)
 	if not success then
+		vim.notify(err or "Failed to create terminal", vim.log.levels.ERROR, { title = "Kiro" })
 		return false, err
 	end
 

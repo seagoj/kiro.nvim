@@ -5,11 +5,16 @@ CONTENTS                                                        *kiro-contents*
 
     1. Introduction ............................ |kiro-introduction|
     2. Requirements ............................ |kiro-requirements|
-    3. Configuration ........................... |kiro-configuration|
-    4. Commands ................................ |kiro-commands|
-    5. Keymaps ................................. |kiro-keymaps|
-    6. Lua API ................................. |kiro-api|
-    7. Health Check ............................ |kiro-health|
+    3. Installation ............................ |kiro-installation|
+    4. Quick Start ............................. |kiro-quickstart|
+    5. Configuration ........................... |kiro-configuration|
+    6. Commands ................................ |kiro-commands|
+    7. Keymaps ................................. |kiro-keymaps|
+    8. Lua API ................................. |kiro-api|
+    9. LSP Integration ......................... |kiro-lsp|
+   10. Examples ................................ |kiro-examples|
+   11. Troubleshooting ......................... |kiro-troubleshooting|
+   12. Health Check ............................ |kiro-health|
 
 ==============================================================================
 INTRODUCTION                                                *kiro-introduction*
@@ -17,95 +22,549 @@ INTRODUCTION                                                *kiro-introduction*
 kiro.nvim is a Neovim plugin that integrates Kiro AI chat directly into your
 editor. Send file context to Kiro and receive responses in a terminal buffer.
 
+Features:
+  • Send current file or selected lines to Kiro
+  • Multiple terminal layouts (split, vsplit, float)
+  • Command history with navigation
+  • LSP integration from .kiro/settings/lsp.json
+  • Toggleterm.nvim support
+  • Custom commands with prompts
+  • File size validation
+  • Visual error notifications
+
 ==============================================================================
 REQUIREMENTS                                                *kiro-requirements*
 
-  • Neovim 0.5+
+  • Neovim 0.9+
   • kiro-cli installed and in PATH (https://kiro.ai)
+
+Optional:
+  • toggleterm.nvim for enhanced terminal management
+
+==============================================================================
+INSTALLATION                                                *kiro-installation*
+
+lazy.nvim: >lua
+    {
+      'seagoj/kiro.nvim',
+      opts = {
+        split = 'vsplit',
+        enable_lsp = true,
+      }
+    }
+<
+
+packer.nvim: >lua
+    use {
+      'seagoj/kiro.nvim',
+      config = function()
+        require('kiro').setup()
+      end
+    }
+<
+
+vim-plug: >vim
+    Plug 'seagoj/kiro.nvim'
+    
+    lua << EOF
+    require('kiro').setup()
+    EOF
+<
+
+==============================================================================
+QUICK START                                                  *kiro-quickstart*
+
+1. Install kiro-cli from https://kiro.ai
+2. Add plugin to your config (see |kiro-installation|)
+3. Open a file and run: >vim
+    :KiroBuffer
+<
+4. Kiro terminal opens with file context
+5. Press <C-q> to close, <C-r> to resend
 
 ==============================================================================
 CONFIGURATION                                              *kiro-configuration*
 
-Setup: >lua
+Setup with defaults: >lua
+    require('kiro').setup()
+<
+
+Full configuration: >lua
     require('kiro').setup({
+      -- Enable default :KiroBuffer command
       register_default_commands = true,
+      
+      -- Terminal layout: 'split', 'vsplit', or 'float'
       split = 'vsplit',
+      
+      -- Reuse existing terminal window
       reuse_terminal = true,
+      
+      -- Auto enter insert mode when opening terminal
       auto_insert_mode = true,
-      keymaps = { close = '<C-q>', resend = '<C-r>' },
+      
+      -- Buffer-local keymaps
+      keymaps = {
+        close = '<C-q>',   -- Close terminal
+        resend = '<C-r>',  -- Resend last message
+      },
+      
+      -- Terminal split size (lines for split, columns for vsplit)
       terminal_size = nil,
+      
+      -- kiro-cli profile name
       profile = nil,
+      
+      -- Maximum command history size
+      history_size = 50,
+      
+      -- Enable LSP integration from .kiro/settings/lsp.json
+      enable_lsp = true,
+      
+      -- Use toggleterm.nvim if available
+      use_toggleterm = false,
+      
+      -- Floating window options (only for split = 'float')
+      float_opts = {
+        width = 0.8,   -- Width as percentage (0.0 to 1.0)
+        height = 0.8,  -- Height as percentage (0.0 to 1.0)
+        row = nil,     -- Row position (default: centered)
+        col = nil,     -- Column position (default: centered)
+      },
+      
+      -- Custom commands
+      commands = {
+        KiroExplain = 'Explain the code in',
+        KiroFix = 'Fix the code in',
+      },
+      
+      -- Enable debug logging
       debug = false,
     })
 <
 
 Options: ~
-  register_default_commands  Enable |:KiroBuffer| command (default: true)
-  split                      'split' or 'vsplit' (default: 'vsplit')
-  reuse_terminal            Reuse terminal window (default: true)
-  auto_insert_mode          Auto enter insert mode (default: true)
-  keymaps                   Buffer-local keymaps (default: {close, resend})
-  terminal_size             Split size in lines/columns (default: nil)
-  profile                   kiro-cli profile name (default: nil)
-  history_size              Max command history (default: 50)
-  debug                     Enable debug logging (default: false)
+
+*kiro-config-register_default_commands*
+register_default_commands  (boolean, default: true)
+    Enable the |:KiroBuffer| command. Set to false to only use custom
+    commands.
+
+*kiro-config-split*
+split                      (string, default: 'vsplit')
+    Terminal layout. Options:
+      'split'   - Horizontal split
+      'vsplit'  - Vertical split
+      'float'   - Floating window
+
+*kiro-config-reuse_terminal*
+reuse_terminal            (boolean, default: true)
+    Reuse existing terminal window instead of creating new ones.
+
+*kiro-config-auto_insert_mode*
+auto_insert_mode          (boolean, default: true)
+    Automatically enter insert mode when opening or focusing terminal.
+
+*kiro-config-keymaps*
+keymaps                   (table, default: {close = '<C-q>', resend = '<C-r>'})
+    Buffer-local keymaps for the terminal. Set to false to disable a keymap.
+
+*kiro-config-terminal_size*
+terminal_size             (number, optional)
+    Size of terminal split in lines (horizontal) or columns (vertical).
+    If not set, uses Neovim's default split size.
+
+*kiro-config-profile*
+profile                   (string, optional)
+    kiro-cli profile to use. Corresponds to: >
+    kiro-cli chat --profile <name>
+<
+
+*kiro-config-history_size*
+history_size              (number, default: 50)
+    Maximum number of messages to keep in command history.
+
+*kiro-config-enable_lsp*
+enable_lsp                (boolean, default: true)
+    Enable automatic LSP configuration from .kiro/settings/lsp.json.
+    See |kiro-lsp| for details.
+
+*kiro-config-use_toggleterm*
+use_toggleterm            (boolean, default: false)
+    Use toggleterm.nvim for terminal management if available.
+    Falls back to default terminal if not installed.
+
+*kiro-config-float_opts*
+float_opts                (table, optional)
+    Floating window options (only used when split = 'float'):
+      width   - Width as percentage of screen (0.0 to 1.0)
+      height  - Height as percentage of screen (0.0 to 1.0)
+      row     - Row position (default: centered)
+      col     - Column position (default: centered)
+
+*kiro-config-commands*
+commands                  (table, default: {})
+    Define custom commands in setup. Keys are command names, values are
+    prompts. See |kiro-examples| for usage.
+
+*kiro-config-debug*
+debug                     (boolean, default: false)
+    Enable debug logging. View logs with |:messages|.
 
 ==============================================================================
 COMMANDS                                                        *kiro-commands*
 
-:KiroBuffer                 Open Kiro chat with current file context
-:[range]KiroBuffer          Open Kiro chat with selected lines
+*:KiroBuffer*
+:KiroBuffer                 Open Kiro chat with current file context.
+                           Sends entire file to Kiro.
 
-Custom commands: >lua
+:[range]KiroBuffer          Open Kiro chat with selected lines.
+                           Only sends specified line range.
+
+Custom Commands: ~
+
+Register custom commands with specific prompts: >lua
     require('kiro').register_command('KiroExplain', 'Explain the code in')
+    require('kiro').register_command('KiroFix', 'Fix the code in')
+<
+
+Then use them: >vim
+    :KiroExplain
+    :'<,'>KiroFix
 <
 
 ==============================================================================
 KEYMAPS                                                          *kiro-keymaps*
 
-In Kiro terminal (normal mode):
-  <C-q>                     Close terminal
-  <C-r>                     Resend last message
+Default keymaps in Kiro terminal (normal mode):
+
+*kiro-keymap-close*
+<C-q>                     Close the terminal window.
+
+*kiro-keymap-resend*
+<C-r>                     Resend the last message.
+
+Customize keymaps: >lua
+    require('kiro').setup({
+      keymaps = {
+        close = '<leader>q',
+        resend = '<leader>r',
+      }
+    })
+<
+
+Disable a keymap: >lua
+    require('kiro').setup({
+      keymaps = {
+        close = false,  -- Disable close keymap
+      }
+    })
+<
 
 ==============================================================================
 LUA API                                                              *kiro-api*
 
-kiro.setup({opts})                                              *kiro.setup()*
-    Initialize plugin with configuration.
+*kiro.setup()*
+kiro.setup({opts})
+    Initialize the plugin with configuration options.
+    See |kiro-configuration| for available options.
 
-kiro.register_command({name}, {prompt})              *kiro.register_command()*
-    Register custom command.
+    Parameters: ~
+        {opts}  (table|nil) Configuration options
 
-kiro.close_terminal()                                    *kiro.close_terminal()*
-    Close the terminal window.
+    Example: >lua
+        require('kiro').setup({
+          split = 'float',
+          history_size = 100,
+        })
+<
 
-kiro.resend()                                                      *kiro.resend()*
-    Resend last message.
+*kiro.register_command()*
+kiro.register_command({name}, {prompt})
+    Register a custom command with a specific prompt.
 
-kiro.get_history()                                            *kiro.get_history()*
-    Get command history as array of strings.
+    Parameters: ~
+        {name}    (string) Command name (e.g., 'KiroExplain')
+        {prompt}  (string|function) Prompt text or function that returns
+                  prompt. Function receives command opts as parameter.
 
-kiro.clear_history()                                        *kiro.clear_history()*
-    Clear command history.
+    Example: >lua
+        require('kiro').register_command('KiroExplain', 'Explain the code in')
+        
+        -- With function prompt
+        require('kiro').register_command('KiroCustom', function(opts)
+          return 'Custom prompt for ' .. vim.fn.expand('%')
+        end)
+<
 
-kiro.send_from_history({index})                        *kiro.send_from_history()*
-    Send message from history by index (1 = oldest, -1 = newest).
+*kiro.close_terminal()*
+kiro.close_terminal()
+    Close the Kiro terminal window.
 
-kiro.send_with_files({prompt}, {files})                    *kiro.send_with_files()*
-    Send message with multiple files as context.
+    Example: >lua
+        require('kiro').close_terminal()
+<
+
+*kiro.clear_terminal()*
+kiro.clear_terminal()
+    Close the terminal and clear command history.
+
+    Example: >lua
+        require('kiro').clear_terminal()
+<
+
+*kiro.resend()*
+kiro.resend()
+    Resend the last message to Kiro.
+
+    Example: >lua
+        require('kiro').resend()
+<
+
+*kiro.get_history()*
+kiro.get_history()
+    Get command history as an array of strings.
+
+    Returns: ~
+        (table) Array of previous messages, oldest first
+
+    Example: >lua
+        local history = require('kiro').get_history()
+        for i, msg in ipairs(history) do
+          print(i, msg)
+        end
+<
+
+*kiro.clear_history()*
+kiro.clear_history()
+    Clear command history without closing terminal.
+
+    Example: >lua
+        require('kiro').clear_history()
+<
+
+*kiro.send_from_history()*
+kiro.send_from_history({index})
+    Send a message from command history.
+
+    Parameters: ~
+        {index}  (number) History index
+                 Positive: 1 = oldest message
+                 Negative: -1 = newest message
+
+    Example: >lua
+        require('kiro').send_from_history(-1)  -- Send most recent
+        require('kiro').send_from_history(1)   -- Send oldest
+<
+
+*kiro.send_with_files()*
+kiro.send_with_files({prompt}, {files})
+    Send a message with multiple files as context.
+
     Parameters: ~
         {prompt}  (string) Prompt text
-        {files}   (table) List of file paths
+        {files}   (table) Array of file paths
 
-kiro.clear_terminal()                                      *kiro.clear_terminal()*
-    Clear terminal (close and clear history).
+    Example: >lua
+        require('kiro').send_with_files('Explain these files', {
+          'lua/kiro/init.lua',
+          'lua/kiro/config.lua',
+        })
+<
+
+==============================================================================
+LSP INTEGRATION                                                      *kiro-lsp*
+
+kiro.nvim automatically loads and configures LSP servers from
+.kiro/settings/lsp.json if present.
+
+Setup: ~
+
+1. Initialize LSP in your project: >bash
+    cd /path/to/project
+    kiro-cli /code init
+<
+
+2. This creates .kiro/settings/lsp.json with detected LSP servers.
+
+3. kiro.nvim automatically starts these servers when you open files.
+
+Configuration Format: ~
+
+.kiro/settings/lsp.json: >json
+    {
+      "lua_ls": {
+        "cmd": ["lua-language-server"],
+        "filetypes": ["lua"],
+        "root_dir": "."
+      },
+      "rust_analyzer": {
+        "cmd": ["rust-analyzer"],
+        "filetypes": ["rust"],
+        "root_dir": "."
+      }
+    }
+<
+
+Disable LSP Integration: ~
+>lua
+    require('kiro').setup({
+      enable_lsp = false,
+    })
+<
+
+Or delete .kiro/settings/lsp.json from your project.
+
+==============================================================================
+EXAMPLES                                                        *kiro-examples*
+
+Floating Window Setup: ~
+>lua
+    require('kiro').setup({
+      split = 'float',
+      float_opts = {
+        width = 0.9,
+        height = 0.9,
+      },
+    })
+<
+
+Custom Commands: ~
+>lua
+    local kiro = require('kiro')
+    
+    -- Code explanation
+    kiro.register_command('KiroExplain', 'Explain the code in')
+    
+    -- Bug fixing
+    kiro.register_command('KiroFix', 'Fix the code in')
+    
+    -- Performance optimization
+    kiro.register_command('KiroOptimize', 'Optimize the code in')
+    
+    -- Refactoring
+    kiro.register_command('KiroRefactor', 'Refactor for readability the code in')
+    
+    -- Add tests
+    kiro.register_command('KiroTest', 'Write tests for the code in')
+    
+    -- Documentation
+    kiro.register_command('KiroDoc', 'Add documentation to the code in')
+<
+
+Use with visual selection: >vim
+    " Select lines in visual mode, then:
+    :'<,'>KiroExplain
+<
+
+Multiple Files: ~
+>lua
+    require('kiro').send_with_files('Compare these implementations', {
+      'src/old_version.lua',
+      'src/new_version.lua',
+    })
+<
+
+History Navigation: ~
+>lua
+    local kiro = require('kiro')
+    
+    -- View history
+    local history = kiro.get_history()
+    vim.print(history)
+    
+    -- Send from history
+    kiro.send_from_history(-1)  -- Most recent
+    kiro.send_from_history(1)   -- Oldest
+<
+
+Profile Usage: ~
+>lua
+    require('kiro').setup({
+      profile = 'work',  -- Uses: kiro-cli chat --profile work
+    })
+<
+
+Toggleterm Integration: ~
+>lua
+    require('kiro').setup({
+      use_toggleterm = true,
+    })
+<
+
+==============================================================================
+TROUBLESHOOTING                                          *kiro-troubleshooting*
+
+kiro-cli not found ~
+
+Error: "kiro-cli not found in PATH. Install from https://kiro.ai"
+
+Solution:
+1. Install kiro-cli from https://kiro.ai
+2. Verify: >bash
+    which kiro-cli
+    kiro-cli --version
+<
+3. Ensure it's in your PATH
+4. Restart Neovim
+
+Terminal doesn't open ~
+
+Solution:
+1. Run |:checkhealth| kiro to verify setup
+2. Enable debug mode: >lua
+    require('kiro').setup({ debug = true })
+<
+3. Check |:messages| for error details
+4. Verify you have a file open (not empty buffer)
+
+File too large error ~
+
+Error: "File too large (2048 KB). Maximum size: 1024 KB"
+
+Solution:
+1. Use visual selection to send only relevant lines: >vim
+    :'<,'>KiroBuffer
+<
+2. Or modify the limit in lua/kiro/constants.lua
+
+Keymaps not working ~
+
+Solution:
+1. Ensure you're in normal mode (press <Esc> first)
+2. Verify you're in the Kiro terminal buffer
+3. Check keymap configuration: >lua
+    require('kiro').setup({
+      keymaps = {
+        close = '<C-q>',
+        resend = '<C-r>',
+      }
+    })
+<
+4. Test with: >vim
+    :nmap <C-q>
+<
+
+LSP servers not starting ~
+
+Solution:
+1. Verify .kiro/settings/lsp.json exists
+2. Check LSP servers are installed
+3. Enable debug mode to see LSP errors
+4. Manually test LSP server: >bash
+    lua-language-server --version
+<
 
 ==============================================================================
 HEALTH CHECK                                                      *kiro-health*
 
-Check kiro-cli installation: >vim
+Check kiro-cli installation and plugin status: >vim
     :checkhealth kiro
 <
+
+This verifies:
+  • kiro-cli is installed and in PATH
+  • Plugin is properly configured
 
 ==============================================================================
 vim:tw=78:ts=8:ft=help:norl:

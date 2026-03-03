@@ -20,11 +20,17 @@ Neovim plugin for [Kiro AI](https://kiro.ai) chat integration with minimal depen
   'seagoj/kiro.nvim',
   opts = {
     register_default_commands = true,  -- Enable default commands (default: true)
-    split = 'vsplit',                  -- Split direction: 'split' or 'vsplit' (default: 'vsplit')
+    split = 'vsplit',                  -- Split direction: 'split', 'vsplit', or 'float' (default: 'vsplit')
     commands = {},                     -- Custom commands (default: {})
     reuse_terminal = true,             -- Reuse existing terminal window (default: true)
     auto_insert_mode = true,           -- Auto enter insert mode (default: true)
     enable_lsp = true,                 -- Enable LSP integration (default: true)
+    float_opts = {                     -- Floating window options (only for split = 'float')
+      width = 0.8,                     -- Width as percentage of screen (default: 0.8)
+      height = 0.8,                    -- Height as percentage of screen (default: 0.8)
+      row = nil,                       -- Row position (default: centered)
+      col = nil,                       -- Column position (default: centered)
+    },
   }
 }
 ```
@@ -37,7 +43,7 @@ use {
   config = function()
     require('kiro').setup({
       register_default_commands = true,  -- Enable default commands (default: true)
-      split = 'vsplit',                  -- Split direction: 'split' or 'vsplit' (default: 'vsplit')
+      split = 'vsplit',                  -- Split direction: 'split', 'vsplit', or 'float' (default: 'vsplit')
       commands = {},                     -- Custom commands (default: {})
       enable_lsp = true,                 -- Enable LSP integration (default: true)
     })
@@ -54,7 +60,7 @@ Plug 'seagoj/kiro.nvim'
 lua << EOF
 require('kiro').setup({
   register_default_commands = true,  -- Enable default commands (default: true)
-  split = 'vsplit',                  -- Split direction: 'split' or 'vsplit' (default: 'vsplit')
+  split = 'vsplit',                  -- Split direction: 'split', 'vsplit', or 'float' (default: 'vsplit')
   commands = {},                     -- Custom commands (default: {})
   enable_lsp = true,                 -- Enable LSP integration (default: true)
 })
@@ -64,7 +70,7 @@ EOF
 ## Configuration
 
 - `register_default_commands` (boolean, default: `true`) - When enabled, automatically registers the `:KiroBuffer` command. When disabled, you can manually register custom commands using `require('kiro').register_command()`.
-- `split` (string, default: `'vsplit'`) - Terminal split direction. Options: `'split'` (horizontal) or `'vsplit'` (vertical).
+- `split` (string, default: `'vsplit'`) - Terminal split direction. Options: `'split'` (horizontal), `'vsplit'` (vertical), or `'float'` (floating window).
 - `commands` (table, default: `{}`) - Define custom commands in setup. Keys are command names, values are prompts.
 - `reuse_terminal` (boolean, default: `true`) - Reuse existing terminal window instead of creating new ones for each command.
 - `auto_insert_mode` (boolean, default: `true`) - Automatically enter insert mode when opening or focusing the terminal.
@@ -73,6 +79,11 @@ EOF
 - `profile` (string, optional) - kiro-cli profile to use. Corresponds to `kiro-cli chat --profile <name>`.
 - `enable_lsp` (boolean, default: `true`) - Enable automatic LSP configuration from `.kiro/settings/lsp.json`.
 - `use_toggleterm` (boolean, default: `false`) - Use [toggleterm.nvim](https://github.com/akinsho/toggleterm.nvim) for terminal management if available.
+- `float_opts` (table, optional) - Floating window options (only used when `split = 'float'`):
+  - `width` (number, default: `0.8`) - Width as percentage of screen (0.0 to 1.0)
+  - `height` (number, default: `0.8`) - Height as percentage of screen (0.0 to 1.0)
+  - `row` (number, optional) - Row position (default: centered)
+  - `col` (number, optional) - Column position (default: centered)
 
 ### Terminal Size
 
@@ -112,6 +123,20 @@ require('kiro').setup({
 ```
 
 This provides better terminal management with toggleterm's features like persistent terminals and easier toggling. Falls back to default terminal if toggleterm is not available.
+
+### Floating Window
+
+Use a floating window for a more focused chat experience:
+
+```lua
+require('kiro').setup({
+  split = 'float',
+  float_opts = {
+    width = 0.9,   -- 90% of screen width
+    height = 0.9,  -- 90% of screen height
+  },
+})
+```
 
 ### LSP Integration
 
