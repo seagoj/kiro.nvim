@@ -19,9 +19,7 @@ local state = {
 function M.setup(opts)
 	local config, err = Config.init(opts)
 	if err ~= nil then
-		local error_msg = "Invalid config: " .. err
-		Logger.error(error_msg)
-		vim.notify(error_msg, vim.log.levels.ERROR, { title = "Kiro" })
+		Logger.error("Invalid config: %s", { notify = true }, err)
 		return
 	end
 	if not config.force_setup and state.initialized then
@@ -63,6 +61,51 @@ function M.setup(opts)
 		end
 	end
 
+	-- Register session management commands
+	vim.api.nvim_create_user_command("KiroSession", function(opts)
+		if opts.args == "" then
+			-- Show current session
+			local current = M.get_session()
+			vim.notify("Current session: " .. current, vim.log.levels.INFO, { title = "Kiro" })
+		else
+			-- Switch session
+			M.set_session(opts.args)
+			vim.notify("Switched to session: " .. opts.args, vim.log.levels.INFO, { title = "Kiro" })
+		end
+	end, {
+		nargs = "?",
+		desc = "Get or set current Kiro terminal session",
+		complete = function()
+			local sessions = M.list_sessions()
+			local names = {}
+			for name, _ in pairs(sessions) do
+				table.insert(names, name)
+			end
+			return names
+		end,
+	})
+
+	vim.api.nvim_create_user_command("KiroSessions", function()
+		local sessions = M.list_sessions()
+		local current = M.get_session()
+		local lines = { "Kiro Terminal Sessions", string.rep("=", 40), "" }
+
+		if vim.tbl_count(sessions) == 0 then
+			table.insert(lines, "No sessions")
+		else
+			for name, info in pairs(sessions) do
+				local marker = name == current and "* " or "  "
+				local status = info.active and "Active" or "Inactive"
+				table.insert(lines, string.format("%s%s - %s", marker, name, status))
+				if info.last_message then
+					table.insert(lines, string.format("    Last: %s", info.last_message:sub(1, 50)))
+				end
+			end
+		end
+
+		vim.notify(table.concat(lines, "\n"), vim.log.levels.INFO, { title = "Kiro Sessions" })
+	end, { desc = "List all Kiro terminal sessions" })
+
 	Logger.debug("Kiro initialized successfully")
 end
 
@@ -96,8 +139,7 @@ end
 --- Resend the last message to Kiro
 function M.resend()
 	if not state.initialized then
-		Logger.error(Constants.MESSAGES.NOT_INITIALIZED)
-		vim.notify(Constants.MESSAGES.NOT_INITIALIZED, vim.log.levels.ERROR, { title = "Kiro" })
+		Logger.error(Constants.MESSAGES.NOT_INITIALIZED, { notify = true })
 		return
 	end
 
@@ -107,13 +149,10 @@ function M.resend()
 		Logger.debug("Resending last message")
 		local success, err = Terminal.open(last, state.config)
 		if not success then
-			local error_msg = string.format(Constants.MESSAGES.FAILED_TO_RESEND, err or "unknown error")
-			Logger.error(error_msg)
-			vim.notify(error_msg, vim.log.levels.ERROR, { title = "Kiro" })
+			Logger.error(Constants.MESSAGES.FAILED_TO_RESEND, { notify = true }, err or "unknown error")
 		end
 	else
-		Logger.warn(Constants.MESSAGES.NO_PREVIOUS_MESSAGE)
-		vim.notify(Constants.MESSAGES.NO_PREVIOUS_MESSAGE, vim.log.levels.WARN, { title = "Kiro" })
+		Logger.warn(Constants.MESSAGES.NO_PREVIOUS_MESSAGE, { notify = true })
 	end
 end
 
@@ -135,8 +174,7 @@ end
 --- @param index number History index (1 = oldest, -1 = newest)
 function M.send_from_history(index)
 	if not state.initialized then
-		Logger.error(Constants.MESSAGES.NOT_INITIALIZED)
-		vim.notify(Constants.MESSAGES.NOT_INITIALIZED, vim.log.levels.ERROR, { title = "Kiro" })
+		Logger.error(Constants.MESSAGES.NOT_INITIALIZED, { notify = true })
 		return
 	end
 
@@ -144,8 +182,7 @@ function M.send_from_history(index)
 	local history = History.get_all()
 
 	if #history == 0 then
-		Logger.warn("No command history")
-		vim.notify("No command history", vim.log.levels.WARN, { title = "Kiro" })
+		Logger.warn("No command history", { notify = true })
 		return
 	end
 
@@ -155,9 +192,7 @@ function M.send_from_history(index)
 	end
 
 	if index < 1 or index > #history then
-		local error_msg = string.format("Invalid history index: %d (history size: %d)", index, #history)
-		Logger.error(error_msg)
-		vim.notify(error_msg, vim.log.levels.ERROR, { title = "Kiro" })
+		Logger.error("Invalid history index: %d (history size: %d)", { notify = true }, index, #history)
 		return
 	end
 
@@ -165,9 +200,7 @@ function M.send_from_history(index)
 	Logger.debug("Sending from history [%d]: %s", index, message)
 	local success, err = Terminal.open(message, state.config)
 	if not success then
-		local error_msg = string.format(Constants.MESSAGES.FAILED_TO_OPEN, err or "unknown error")
-		Logger.error(error_msg)
-		vim.notify(error_msg, vim.log.levels.ERROR, { title = "Kiro" })
+		Logger.error(Constants.MESSAGES.FAILED_TO_OPEN, { notify = true }, err or "unknown error")
 	end
 end
 
@@ -176,17 +209,14 @@ end
 --- @param files string[] List of file paths
 function M.send_with_files(prompt, files)
 	if not state.initialized then
-		Logger.error(Constants.MESSAGES.NOT_INITIALIZED)
-		vim.notify(Constants.MESSAGES.NOT_INITIALIZED, vim.log.levels.ERROR, { title = "Kiro" })
+		Logger.error(Constants.MESSAGES.NOT_INITIALIZED, { notify = true })
 		return
 	end
 
 	Logger.debug("Sending with %d files", #files)
 	local success, err = Commands.send_with_files(prompt, files, Terminal, state.config)
 	if not success then
-		local error_msg = string.format(Constants.MESSAGES.FAILED_TO_OPEN, err or "unknown error")
-		Logger.error(error_msg)
-		vim.notify(error_msg, vim.log.levels.ERROR, { title = "Kiro" })
+		Logger.error(Constants.MESSAGES.FAILED_TO_OPEN, { notify = true }, err or "unknown error")
 	end
 end
 
@@ -205,6 +235,33 @@ end
 --- @return table Detected LSP servers
 function M.lsp_detect()
 	return Lsp.detect_servers()
+end
+
+--- Set current terminal session
+--- @param name string Session name
+function M.set_session(name)
+	local Window = require("kiro.terminal.window")
+	Window.set_session(name)
+end
+
+--- Get current terminal session name
+--- @return string
+function M.get_session()
+	local Window = require("kiro.terminal.window")
+	return Window.get_current_session()
+end
+
+--- List all terminal sessions
+--- @return table<string, {active: boolean, last_message: string|nil}>
+function M.list_sessions()
+	local Window = require("kiro.terminal.window")
+	return Window.list_sessions()
+end
+
+--- Close all terminal sessions
+function M.close_all_sessions()
+	local Window = require("kiro.terminal.window")
+	Window.close_all()
 end
 
 return M

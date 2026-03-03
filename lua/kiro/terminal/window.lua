@@ -10,43 +10,94 @@ local Constants = require("kiro.constants")
 --- @field bufnr number|nil Buffer number
 --- @field winid number|nil Window ID
 --- @field last_message string|nil Last sent message
+--- @field name string Session name
 
---- @type WindowState
-local state = {
-	bufnr = nil,
-	winid = nil,
-	last_message = nil,
-}
+--- @type table<string, WindowState>
+local sessions = {}
+
+--- @type string Current active session name
+local current_session = "default"
+
+--- Get or create session
+--- @param name string|nil Session name (default: "default")
+--- @return WindowState
+local function get_session(name)
+	name = name or current_session
+	if not sessions[name] then
+		sessions[name] = {
+			bufnr = nil,
+			winid = nil,
+			last_message = nil,
+			name = name,
+		}
+	end
+	return sessions[name]
+end
+
+--- Set current session
+--- @param name string Session name
+function M.set_session(name)
+	current_session = name
+	Logger.debug("Switched to session: %s", name)
+end
+
+--- Get current session name
+--- @return string
+function M.get_current_session()
+	return current_session
+end
+
+--- List all sessions
+--- @return table<string, {active: boolean, last_message: string|nil}>
+function M.list_sessions()
+	local list = {}
+	for name, state in pairs(sessions) do
+		list[name] = {
+			active = state.bufnr ~= nil and vim.api.nvim_buf_is_valid(state.bufnr),
+			last_message = state.last_message,
+		}
+	end
+	return list
+end
 
 --- Get last sent message
+--- @param session_name string|nil Session name
 --- @return string|nil Last message or nil
-function M.get_last_message()
+function M.get_last_message(session_name)
+	local state = get_session(session_name)
 	return state.last_message
 end
 
 --- Check if terminal buffer is still valid
+--- @param session_name string|nil Session name
 --- @return boolean True if buffer is valid
-function M.is_buffer_valid()
+function M.is_buffer_valid(session_name)
+	local state = get_session(session_name)
 	return state.bufnr ~= nil and vim.api.nvim_buf_is_valid(state.bufnr)
 end
 
 --- Check if terminal window is still open
+--- @param session_name string|nil Session name
 --- @return boolean True if window is valid
-function M.is_window_valid()
+function M.is_window_valid(session_name)
+	local state = get_session(session_name)
 	return state.winid ~= nil and vim.api.nvim_win_is_valid(state.winid)
 end
 
 --- Focus existing terminal window or create new split
 --- @param split_cmd string Split command ('split', 'vsplit', or 'float')
 --- @param config KiroConfigOptions Configuration options
+--- @param session_name string|nil Session name
 --- @return boolean True if terminal was focused or window created
-function M.focus_or_create(split_cmd, config)
-	if M.is_window_valid() then
+function M.focus_or_create(split_cmd, config, session_name)
+	local state = get_session(session_name)
+	
+	if state.winid and vim.api.nvim_win_is_valid(state.winid) then
 		vim.api.nvim_set_current_win(state.winid)
 		return true
 	end
 
-	if M.is_buffer_valid() then
+	if state.bufnr and vim.api.nvim_buf_is_valid(state.bufnr) then
 		if split_cmd == "float" then
 			M.create_float_window(state.bufnr, config)
 		else
@@ -62,10 +113,13 @@ end
 
 --- Send message to existing terminal
 --- @param message string Message to send
+--- @param session_name string|nil Session name
 --- @return boolean success True if message was sent successfully
 --- @return string|nil error Error message if failed
-function M.send_message(message)
-	if not M.is_buffer_valid() then
+function M.send_message(message, session_name)
+	local state = get_session(session_name)
+	
+	if not state.bufnr or not vim.api.nvim_buf_is_valid(state.bufnr) then
 		return false, Constants.MESSAGES.TERMINAL_BUFFER_INVALID
 	end
 
@@ -84,7 +138,7 @@ function M.send_message(message)
 	end
 
 	state.last_message = message
-	Logger.debug("Message sent to terminal")
+	Logger.debug("Message sent to terminal (session: %s)", state.name)
 	return true, nil
 end
 
@@ -92,9 +146,12 @@ end
 --- @param command string Shell command to execute
 --- @param split_cmd string Split command ('split', 'vsplit', or 'float')
 --- @param config KiroConfigOptions Configuration options
+--- @param session_name string|nil Session name
 --- @return boolean success True if terminal was created successfully
 --- @return string|nil error Error message if failed
-function M.create(command, split_cmd, config)
+function M.create(command, split_cmd, config, session_name)
+	local state = get_session(session_name)
+	
 	local ok, err = pcall(function()
 		if split_cmd == "float" then
 			-- Create buffer first
@@ -115,9 +172,12 @@ function M.create(command, split_cmd, config)
 			state.winid = vim.api.nvim_get_current_win()
 		end
 
+		-- Set buffer name for identification
+		vim.api.nvim_buf_set_name(state.bufnr, string.format("kiro://%s", state.name))
+
 		-- Set up buffer-local keymaps
 		if config and config.keymaps then
-			M.setup_keymaps(config)
+			M.setup_keymaps(config, session_name)
 		end
 
 		-- Set buffer options for better UX
@@ -125,7 +185,18 @@ function M.create(command, split_cmd, config)
 		vim.wo[state.winid].number = false -- luacheck: ignore
 		vim.wo[state.winid].relativenumber = false -- luacheck: ignore
 
-		Logger.debug("Terminal created: bufnr=%d, winid=%d", state.bufnr, state.winid)
+		-- Auto-cleanup on buffer delete
+		vim.api.nvim_create_autocmd("BufDelete", {
+			buffer = state.bufnr,
+			once = true,
+			callback = function()
+				Logger.debug("Terminal buffer deleted (session: %s)", state.name)
+				state.bufnr = nil
+				state.winid = nil
+			end,
+		})
+
+		Logger.debug("Terminal created: bufnr=%d, winid=%d, session=%s", state.bufnr, state.winid, state.name)
 	end)
 
 	if not ok then
@@ -162,8 +233,11 @@ end
 
 --- Setup buffer-local keymaps
 --- @param config KiroConfigOptions Configuration with keymaps
-function M.setup_keymaps(config)
-	if not M.is_buffer_valid() then
+--- @param session_name string|nil Session name
+function M.setup_keymaps(config, session_name)
+	local state = get_session(session_name)
+	
+	if not state.bufnr or not vim.api.nvim_buf_is_valid(state.bufnr) then
 		return
 	end
 
@@ -171,32 +245,48 @@ function M.setup_keymaps(config)
 
 	if config.keymaps.close then
 		vim.keymap.set("n", config.keymaps.close, function()
-			M.close()
+			M.close(session_name)
 		end, vim.tbl_extend("force", opts, { desc = "Close Kiro terminal" }))
-		Logger.debug("Keymap registered: %s -> close", config.keymaps.close)
+		Logger.debug("Keymap registered: %s -> close (session: %s)", config.keymaps.close, state.name)
 	end
 
 	if config.keymaps.resend then
 		vim.keymap.set("n", config.keymaps.resend, function()
-			local last = M.get_last_message()
+			local last = M.get_last_message(session_name)
 			if last then
-				M.send_message(last)
+				M.send_message(last, session_name)
 			else
 				Logger.warn(Constants.MESSAGES.NO_PREVIOUS_MESSAGE)
 			end
 		end, vim.tbl_extend("force", opts, { desc = "Resend last message" }))
-		Logger.debug("Keymap registered: %s -> resend", config.keymaps.resend)
+		Logger.debug("Keymap registered: %s -> resend (session: %s)", config.keymaps.resend, state.name)
 	end
 end
 
 --- Close and cleanup terminal
-function M.close()
-	if M.is_window_valid() then
+--- @param session_name string|nil Session name
+function M.close(session_name)
+	local state = get_session(session_name)
+	
+	if state.winid and vim.api.nvim_win_is_valid(state.winid) then
 		vim.api.nvim_win_close(state.winid, true)
 	end
+	
+	if state.bufnr and vim.api.nvim_buf_is_valid(state.bufnr) then
+		vim.api.nvim_buf_delete(state.bufnr, { force = true })
+	end
+	
 	state.bufnr = nil
 	state.winid = nil
-	state.last_message = nil
+	Logger.debug("Terminal closed (session: %s)", state.name)
+end
+
+--- Close all terminal sessions
+function M.close_all()
+	for name, _ in pairs(sessions) do
+		M.close(name)
+	end
+	Logger.debug("All terminal sessions closed")
 end
 
 return M

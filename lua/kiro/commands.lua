@@ -55,7 +55,7 @@ local function build_multi_file_context(files)
 		local size_kb = vim.fn.getfsize(file) / 1024
 		if size_kb > Constants.LIMITS.MAX_FILE_SIZE_KB then
 			return nil,
-				string.format(Constants.MESSAGES.FILE_TOO_LARGE, math.floor(size_kb), Constants.LIMITS.MAX_FILE_SIZE_KB)
+					string.format(Constants.MESSAGES.FILE_TOO_LARGE, math.floor(size_kb), Constants.LIMITS.MAX_FILE_SIZE_KB)
 		end
 
 		table.insert(contexts, string.format("(file: %s)", file))
@@ -75,9 +75,8 @@ function M.register(name, prompt, terminal, config)
 		Logger.debug("Executing command: %s", name)
 		local context, err = build_file_context(opts)
 		if err then
-			Logger.error(err)
-			vim.notify(err, vim.log.levels.ERROR, { title = "Kiro" })
-			return
+			Logger.error(err, { notify = true })
+			context = ""
 		end
 
 		local message
@@ -90,9 +89,7 @@ function M.register(name, prompt, terminal, config)
 		Logger.debug("Sending message: %s", message)
 		local success, open_err = terminal.open(message, config)
 		if not success then
-			local error_msg = string.format(Constants.MESSAGES.FAILED_TO_OPEN, open_err or "unknown error")
-			Logger.error(error_msg)
-			vim.notify(error_msg, vim.log.levels.ERROR, { title = "Kiro" })
+			Logger.error(Constants.MESSAGES.FAILED_TO_OPEN, { notify = true }, open_err or "unknown error")
 		end
 	end, { range = true })
 end
@@ -108,8 +105,7 @@ function M.send_with_files(prompt, files, terminal, config)
 	Logger.debug("Sending with %d files", #files)
 	local context, err = build_multi_file_context(files)
 	if err then
-		Logger.error(err)
-		vim.notify(err, vim.log.levels.ERROR, { title = "Kiro" })
+		Logger.error(err, { notify = true })
 		return false, err
 	end
 
@@ -118,8 +114,7 @@ function M.send_with_files(prompt, files, terminal, config)
 	Logger.debug("Sending message: %s", message)
 	local success, open_err = terminal.open(message, config)
 	if not success then
-		local error_msg = string.format(Constants.MESSAGES.FAILED_TO_OPEN, open_err or "unknown error")
-		vim.notify(error_msg, vim.log.levels.ERROR, { title = "Kiro" })
+		Logger.error(Constants.MESSAGES.FAILED_TO_OPEN, { notify = true }, open_err or "unknown error")
 	end
 	return success, open_err
 end

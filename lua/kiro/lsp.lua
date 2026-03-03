@@ -108,8 +108,7 @@ function M.setup(config)
 		local err
 		config, err = M.load_config()
 		if err then
-			Logger.error("LSP setup failed: %s", err)
-			vim.notify("LSP setup failed: " .. err, vim.log.levels.ERROR, { title = "Kiro LSP" })
+			Logger.error("LSP setup failed: %s", { notify = true, title = "Kiro LSP" }, err)
 			return false
 		end
 		if not config then
