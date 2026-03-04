@@ -17,6 +17,7 @@ end
 
 -- Always-loaded modules (needed for setup)
 local Config = require("kiro.config")
+local Commands = require("kiro.commands")
 local Logger = require("kiro.logger")
 local Constants = require("kiro.constants")
 local State = require("kiro.state")
@@ -29,14 +30,14 @@ function M.setup(opts)
 	if project_err then
 		Logger.warn("Project config error: %s", project_err)
 	end
-	
+
 	local result = Config.init(merged_opts)
 	if not result.ok then
 		Logger.error("Invalid config: %s", { notify = true }, result.error)
 		return
 	end
 	local config = result.value
-	
+
 	if not config.force_setup and State.is_initialized() then
 		return
 	end
@@ -112,11 +113,11 @@ function M.setup(opts)
 			table.insert(lines, "No sessions")
 		else
 			for name, info in pairs(sessions) do
-				local marker = name == current and "* " or "  "
+				local marker = name == current and "* " or "	"
 				local status = info.active and "Active" or "Inactive"
 				table.insert(lines, string.format("%s%s - %s", marker, name, status))
 				if info.last_message then
-					table.insert(lines, string.format("    Last: %s", info.last_message:sub(1, 50)))
+					table.insert(lines, string.format("		 Last: %s", info.last_message:sub(1, 50)))
 				end
 			end
 		end
@@ -128,7 +129,7 @@ function M.setup(opts)
 	vim.api.nvim_create_user_command("KiroCheckConfig", function()
 		local Migrate = require("kiro.migrate")
 		local valid, issues = Migrate.validate_schema(State.get_config() or {})
-		
+
 		if valid then
 			vim.notify("✓ Configuration is valid", vim.log.levels.INFO, { title = "Kiro Config" })
 		else
@@ -136,12 +137,15 @@ function M.setup(opts)
 			for _, issue in ipairs(issues) do
 				table.insert(lines, string.format("  • %s", issue.message))
 				if issue.suggestion then
-					table.insert(lines, string.format("    → %s", issue.suggestion))
+					table.insert(lines, string.format("		 → %s", issue.suggestion))
 				end
 			end
 			vim.notify(table.concat(lines, "\n"), vim.log.levels.WARN, { title = "Kiro Config" })
 		end
 	end, { desc = "Validate Kiro configuration" })
+
+	-- Register command palette commands
+	Commands.register_palette_commands(config)
 
 	Logger.debug("Kiro initialized successfully")
 end
@@ -153,24 +157,24 @@ end
 --- @return string|nil error Error message if validation fails
 function M.register_command(name, prompt)
 	local Validate = lazy_require("kiro.validate")
-	
+
 	-- Validate parameters
 	local valid, err = Validate.all({
-		{ Validate.not_empty, name, "name" },
-		{ Validate.type, prompt, { "string", "function" }, "prompt" },
+		{ Validate.not_empty, name,   "name" },
+		{ Validate.type,      prompt, { "string", "function" }, "prompt" },
 	})
-	
+
 	if not valid then
 		Logger.error("Invalid parameters: %s", { notify = true }, err)
 		return false, err
 	end
-	
+
 	if not State.is_initialized() then
 		local err_msg = Constants.MESSAGES.NOT_INITIALIZED
 		Logger.error(err_msg)
 		return false, err_msg
 	end
-	
+
 	Logger.debug("Registering command: %s", name)
 	local Commands = lazy_require("kiro.commands")
 	local Terminal = lazy_require("kiro.terminal")
@@ -233,20 +237,20 @@ end
 --- @return string|nil error Error message if failed
 function M.send_from_history(index)
 	local Validate = lazy_require("kiro.validate")
-	
+
 	-- Validate parameters
 	local valid, err = Validate.type(index, "number", "index")
 	if not valid then
 		Logger.error("Invalid parameters: %s", { notify = true }, err)
 		return false, err
 	end
-	
+
 	if index == 0 then
 		local err_msg = "index cannot be 0 (use 1 for oldest, -1 for newest)"
 		Logger.error(err_msg, { notify = true })
 		return false, err_msg
 	end
-	
+
 	if not State.is_initialized() then
 		Logger.error(Constants.MESSAGES.NOT_INITIALIZED, { notify = true })
 		return false, Constants.MESSAGES.NOT_INITIALIZED
@@ -288,24 +292,24 @@ end
 --- @return string|nil error Error message if failed
 function M.send_with_files(prompt, files)
 	local Validate = lazy_require("kiro.validate")
-	
+
 	-- Validate parameters
 	local valid, err = Validate.all({
 		{ Validate.type, prompt, "string", "prompt" },
-		{ Validate.type, files, "table", "files" },
+		{ Validate.type, files,  "table",  "files" },
 	})
-	
+
 	if not valid then
 		Logger.error("Invalid parameters: %s", { notify = true }, err)
 		return false, err
 	end
-	
+
 	if #files == 0 then
 		local err_msg = "files array cannot be empty"
 		Logger.error(err_msg, { notify = true })
 		return false, err_msg
 	end
-	
+
 	if not State.is_initialized() then
 		Logger.error(Constants.MESSAGES.NOT_INITIALIZED, { notify = true })
 		return false, Constants.MESSAGES.NOT_INITIALIZED
@@ -369,7 +373,7 @@ function M.set_session(name)
 		Logger.error("Invalid parameters: %s", { notify = true }, err)
 		return false, err
 	end
-	
+
 	local Window = lazy_require("kiro.terminal.window")
 	Window.set_session(name)
 	return true, nil

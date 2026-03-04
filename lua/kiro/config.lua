@@ -21,6 +21,8 @@ local Error = require("kiro.error")
 --- @field enable_lsp? boolean Enable LSP integration (default: true)
 --- @field use_toggleterm? boolean Use toggleterm.nvim if available (default: false)
 --- @field float_opts? KiroFloatOpts Floating window options
+--- @field command_palette? boolean Enable command palette (default: true)
+--- @field palette_backend? "telescope"|"builtin" Palette backend (default: "telescope")
 
 --- @class KiroKeymaps Buffer-local keymap configuration
 --- @field close? string|false Keymap to close terminal (default: "<C-q>")
@@ -52,6 +54,8 @@ M.defaults = {
 	history_size = 50,
 	enable_lsp = true,
 	use_toggleterm = false,
+	command_palette = true,
+	palette_backend = "telescope",
 	float_opts = {
 		width = 0.8,
 		height = 0.8,
@@ -69,7 +73,7 @@ local function validate(config)
 	
 	-- Boolean options
 	for _, opt in ipairs({ "register_default_commands", "reuse_terminal", "auto_insert_mode", 
-	                       "force_setup", "debug", "enable_lsp", "use_toggleterm" }) do
+	                       "force_setup", "debug", "enable_lsp", "use_toggleterm", "command_palette" }) do
 		if config[opt] ~= nil then
 			local valid, err = Validate.type(config[opt], "boolean", opt)
 			if not valid then
@@ -112,6 +116,14 @@ local function validate(config)
 		end
 		if config.history_size < 1 then
 			return "history_size must be at least 1", "Try: history_size = 50"
+		end
+	end
+	
+	-- Palette backend
+	if config.palette_backend ~= nil then
+		local valid, err = Validate.one_of(config.palette_backend, { "telescope", "builtin" }, "palette_backend")
+		if not valid then
+			return err, "Try: palette_backend = 'telescope' or 'builtin'"
 		end
 	end
 	

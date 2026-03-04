@@ -133,4 +133,37 @@ function M.send_with_files(prompt, files, terminal, config)
 	return open_result
 end
 
+--- Register palette commands
+--- @param config KiroConfigOptions Configuration options
+function M.register_palette_commands(config)
+	if not config.command_palette then
+		return
+	end
+
+	local Palette = require("kiro.palette")
+
+	vim.api.nvim_create_user_command("KiroHistory", function()
+		Palette.show_history()
+	end, {})
+
+	vim.api.nvim_create_user_command("KiroSearch", function()
+		Palette.show_search()
+	end, {})
+
+	vim.api.nvim_create_user_command("KiroCommands", function()
+		local commands = vim.tbl_keys(vim.api.nvim_get_commands({}))
+		local kiro_commands = vim.tbl_filter(function(cmd)
+			return cmd:match("^Kiro")
+		end, commands)
+
+		vim.ui.select(kiro_commands, {
+			prompt = "Select Kiro command:",
+		}, function(choice)
+			if choice then
+				vim.cmd(choice)
+			end
+		end)
+	end, {})
+end
+
 return M

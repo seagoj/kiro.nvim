@@ -215,10 +215,38 @@ The plugin provides built-in commands:
 | `:KiroBuffer` | Open Kiro chat with current file context |
 | `:KiroSession [name]` | Get or set current terminal session |
 | `:KiroSessions` | List all terminal sessions |
+| `:KiroHistory` | Browse command history (telescope/picker) |
+| `:KiroSearch` | Search conversation history |
+| `:KiroCommands` | List all Kiro commands |
 | `:KiroLspStatus` | Show LSP server status (if LSP enabled) |
 | `:KiroCheckConfig` | Validate current configuration |
 
 All commands support visual selection ranges. Select lines in visual mode and run a command to include only those lines in the context.
+
+### Command Palette
+
+The plugin includes a command palette for browsing history, sessions, and searching conversations. If [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim) is installed, it will use telescope pickers. Otherwise, it falls back to `vim.ui.select`.
+
+**Commands:**
+- `:KiroHistory` - Browse and resend previous commands
+- `:KiroSearch` - Search through conversation history
+- `:KiroCommands` - Quick access to all Kiro commands
+
+**Telescope Integration:**
+```lua
+-- Use telescope pickers directly
+require('telescope').extensions.kiro.history()
+require('telescope').extensions.kiro.sessions()
+require('telescope').extensions.kiro.search()
+```
+
+**Configuration:**
+```lua
+require('kiro').setup({
+  command_palette = true,        -- Enable palette (default: true)
+  palette_backend = 'telescope', -- 'telescope' or 'builtin' (default: 'telescope')
+})
+```
 
 ## Usage
 
