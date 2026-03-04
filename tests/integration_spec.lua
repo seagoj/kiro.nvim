@@ -1,5 +1,6 @@
 local Terminal = require("kiro.terminal")
 local Window = require("kiro.terminal.window")
+local Error = require("kiro.error")
 local stub = require("luassert.stub")
 
 describe("kiro.terminal integration", function()
@@ -23,15 +24,14 @@ describe("kiro.terminal integration", function()
 		executable_stub.returns(1)
 
 		local create_stub = stub(Window, "create")
-		create_stub.returns(true, nil)
+		create_stub.returns(Error.ok())
 
 		local send_stub = stub(Window, "send_message")
-		send_stub.returns(true, nil)
+		send_stub.returns(Error.ok())
 
-		local success, err = Terminal.open("test message", config)
+		local result = Terminal.open("test message", config)
 
-		assert.is_true(success)
-		assert.is_nil(err)
+		assert.is_true(Error.is_ok(result))
 		assert.stub(create_stub).was_called()
 
 		executable_stub:revert()
@@ -43,10 +43,10 @@ describe("kiro.terminal integration", function()
 		local executable_stub = stub(vim.fn, "executable")
 		executable_stub.returns(0)
 
-		local success, err = Terminal.open("test message", config)
+		local result = Terminal.open("test message", config)
 
-		assert.is_false(success)
-		assert.matches("kiro%-cli not found", err)
+		assert.is_true(Error.is_err(result))
+		assert.matches("kiro%-cli not found", result.error)
 
 		executable_stub:revert()
 	end)
@@ -59,14 +59,13 @@ describe("kiro.terminal integration", function()
 		focus_stub.returns(true)
 
 		local send_stub = stub(Window, "send_message")
-		send_stub.returns(true, nil)
+		send_stub.returns(Error.ok())
 
 		local create_stub = stub(Window, "create")
 
-		local success, err = Terminal.open("test message", config)
+		local result = Terminal.open("test message", config)
 
-		assert.is_true(success)
-		assert.is_nil(err)
+		assert.is_true(Error.is_ok(result))
 		assert.stub(focus_stub).was_called()
 		assert.stub(send_stub).was_called()
 		assert.stub(create_stub).was_not_called()
@@ -85,15 +84,14 @@ describe("kiro.terminal integration", function()
 		focus_stub.returns(true)
 
 		local send_stub = stub(Window, "send_message")
-		send_stub.returns(false, "Channel error")
+		send_stub.returns(Error.err("Channel error", Error.codes.CHANNEL_UNAVAILABLE))
 
 		local create_stub = stub(Window, "create")
-		create_stub.returns(true, nil)
+		create_stub.returns(Error.ok())
 
-		local success, err = Terminal.open("test message", config)
+		local result = Terminal.open("test message", config)
 
-		assert.is_true(success)
-		assert.is_nil(err)
+		assert.is_true(Error.is_ok(result))
 		assert.stub(create_stub).was_called()
 
 		executable_stub:revert()
@@ -108,13 +106,12 @@ describe("kiro.terminal integration", function()
 
 		local focus_stub = stub(Window, "focus_or_create")
 		local create_stub = stub(Window, "create")
-		create_stub.returns(true, nil)
+		create_stub.returns(Error.ok())
 
 		config.reuse_terminal = false
-		local success, err = Terminal.open("test message", config)
+		local result = Terminal.open("test message", config)
 
-		assert.is_true(success)
-		assert.is_nil(err)
+		assert.is_true(Error.is_ok(result))
 		assert.stub(focus_stub).was_not_called()
 		assert.stub(create_stub).was_called()
 
@@ -128,12 +125,12 @@ describe("kiro.terminal integration", function()
 		executable_stub.returns(1)
 
 		local create_stub = stub(Window, "create")
-		create_stub.returns(false, "Failed to create window")
+		create_stub.returns(Error.err("Failed to create window", Error.codes.CREATE_FAILED))
 
-		local success, err = Terminal.open("test message", config)
+		local result = Terminal.open("test message", config)
 
-		assert.is_false(success)
-		assert.matches("Failed to create window", err)
+		assert.is_true(Error.is_err(result))
+		assert.matches("Failed to create window", result.error)
 
 		executable_stub:revert()
 		create_stub:revert()

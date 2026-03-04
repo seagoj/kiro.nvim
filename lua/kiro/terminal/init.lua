@@ -7,6 +7,7 @@ local Window = require("kiro.terminal.window")
 local Logger = require("kiro.logger")
 local Constants = require("kiro.constants")
 local History = require("kiro.history")
+local Error = require("kiro.error")
 
 --- Get appropriate terminal backend
 --- @param config KiroConfigOptions Configuration options
@@ -26,61 +27,58 @@ end
 --- Open new terminal with kiro-cli
 --- @param message string Message to send to kiro-cli
 --- @param config KiroConfigOptions Configuration options
---- @return boolean success True if terminal opened successfully
---- @return string|nil error Error message if failed
+--- @return ErrorResult
 function M.open(message, config)
 	if vim.fn.executable(Constants.CLI.EXECUTABLE) == 0 then
 		Logger.error(Constants.MESSAGES.KIRO_CLI_NOT_FOUND, { notify = true, title = "Kiro" })
-		return false, Constants.MESSAGES.KIRO_CLI_NOT_FOUND
+		return Error.err(Constants.MESSAGES.KIRO_CLI_NOT_FOUND, Error.codes.CLI_NOT_FOUND)
 	end
 
 	local backend = get_backend(config)
 	local split_cmd = config.split
 
-	-- Show loading indicator
 	Logger.info(Constants.MESSAGES.LOADING)
 
 	-- Try to reuse existing terminal (only for default backend)
 	if config.reuse_terminal and backend == Window and Window.focus_or_create(split_cmd, config) then
-		local success = Window.send_message(message)
-		if success then
+		local result = Window.send_message(message)
+		if Error.is_ok(result) then
 			History.add(message)
 			if config.auto_insert_mode then
 				vim.cmd("startinsert")
 			end
 			Logger.info(Constants.MESSAGES.SENT)
-			return true, nil
+			return Error.ok()
 		end
-		-- If send failed, fall through to create new terminal
 		Logger.warn(Constants.MESSAGES.TERMINAL_REUSE_FAILED)
 	end
 
 	-- Create new terminal or use toggleterm
 	if backend ~= Window then
-		local success, err = backend.open(message, config)
-		if success then
+		local result = backend.open(message, config)
+		if Error.is_ok(result) then
 			History.add(message)
 		else
-			Logger.error(err or "Failed to open terminal", { notify = true, title = "Kiro" })
+			Logger.error(result.error or "Failed to open terminal", { notify = true, title = "Kiro" })
 		end
-		return success, err
+		return result
 	end
 
 	-- Default backend
 	local command = Shell.build_command(message, config.profile)
 	Logger.debug("Creating terminal with command: %s", command)
-	local success, err = Window.create(command, split_cmd, config)
-	if not success then
-		Logger.error(err or "Failed to create terminal", { notify = true, title = "Kiro" })
-		return false, err
+	local result = Window.create(command, split_cmd, config)
+	if Error.is_err(result) then
+		Logger.error(result.error or "Failed to create terminal", { notify = true, title = "Kiro" })
+		return result
 	end
 
-	Window.send_message(message) -- Store the initial message
+	Window.send_message(message)
 	History.add(message)
 	if config.auto_insert_mode then
 		vim.cmd("startinsert")
 	end
-	return true, nil
+	return Error.ok()
 end
 
 --- Close and cleanup terminal

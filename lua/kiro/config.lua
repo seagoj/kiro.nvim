@@ -3,23 +3,34 @@
 local M = {}
 
 local Constants = require("kiro.constants")
+local Error = require("kiro.error")
 
---- @class KiroConfigOptions
---- @field commands table<string, string|function>|nil Custom commands with prompts
---- @field default_commands table<string, string>|nil Default commands
---- @field register_default_commands boolean|nil Enable default commands
---- @field split string|nil Split direction: 'split', 'vsplit', or 'float'
---- @field reuse_terminal boolean|nil Reuse existing terminal
---- @field auto_insert_mode boolean|nil Auto enter insert mode
---- @field force_setup boolean|nil Force setup even if already initialized
---- @field debug boolean|nil Enable debug logging
---- @field keymaps table<string, string|boolean>|nil Buffer-local keymaps
---- @field terminal_size number|nil Size of terminal split
---- @field profile string|nil kiro-cli profile name
---- @field history_size number|nil Maximum command history size
---- @field enable_lsp boolean|nil Enable LSP integration from .kiro/settings/lsp.json
---- @field use_toggleterm boolean|nil Use toggleterm.nvim if available
---- @field float_opts table|nil Floating window options (width, height, row, col)
+--- @class KiroConfigOptions User-provided configuration options
+--- @field commands? table<string, string|function> Custom commands with prompts
+--- @field default_commands? table<string, string> Default commands
+--- @field register_default_commands? boolean Enable default commands (default: true)
+--- @field split? "split"|"vsplit"|"float" Split direction (default: "vsplit")
+--- @field reuse_terminal? boolean Reuse existing terminal (default: true)
+--- @field auto_insert_mode? boolean Auto enter insert mode (default: true)
+--- @field force_setup? boolean Force setup even if already initialized (default: false)
+--- @field debug? boolean Enable debug logging (default: false)
+--- @field keymaps? KiroKeymaps Buffer-local keymaps
+--- @field terminal_size? number Size of terminal split in lines/columns (10-200)
+--- @field profile? string kiro-cli profile name
+--- @field history_size? number Maximum command history size (min: 1, default: 50)
+--- @field enable_lsp? boolean Enable LSP integration (default: true)
+--- @field use_toggleterm? boolean Use toggleterm.nvim if available (default: false)
+--- @field float_opts? KiroFloatOpts Floating window options
+
+--- @class KiroKeymaps Buffer-local keymap configuration
+--- @field close? string|false Keymap to close terminal (default: "<C-q>")
+--- @field resend? string|false Keymap to resend last message (default: "<C-r>")
+
+--- @class KiroFloatOpts Floating window configuration
+--- @field width? number Width as percentage of screen (0.0-1.0, default: 0.8)
+--- @field height? number Height as percentage of screen (0.0-1.0, default: 0.8)
+--- @field row? number Row position (default: centered)
+--- @field col? number Column position (default: centered)
 
 --- Default configuration values
 --- @type KiroConfigOptions
@@ -126,11 +137,14 @@ end
 
 --- Initialize configuration with validation
 --- @param opts KiroConfigOptions|nil User configuration options
---- @return KiroConfigOptions config Merged configuration
---- @return string|nil err Error message if validation fails
+--- @return ErrorResult
 function M.init(opts)
 	local config = merge(opts)
-	return config, validate(config)
+	local err = validate(config)
+	if err then
+		return Error.err(err, Error.codes.CONFIG_INVALID)
+	end
+	return Error.ok(config)
 end
 
 return M

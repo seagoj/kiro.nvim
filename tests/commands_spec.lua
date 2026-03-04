@@ -1,4 +1,5 @@
 local Commands = require("kiro.commands")
+local Error = require("kiro.error")
 local stub = require("luassert.stub")
 
 describe("kiro.commands", function()
@@ -8,7 +9,7 @@ describe("kiro.commands", function()
 	before_each(function()
 		mock_terminal = {
 			open = function()
-				return true, nil
+				return Error.ok()
 			end,
 		}
 		mock_config = {
@@ -71,13 +72,12 @@ describe("kiro.commands", function()
 	it("handles terminal open failure", function()
 		local failing_terminal = {
 			open = function()
-				return false, "Terminal creation failed"
+				return Error.err("Terminal creation failed", Error.codes.CREATE_FAILED)
 			end,
 		}
 
 		Commands.register("TestCommand", "Test", failing_terminal, mock_config)
 
-		-- Create a valid temp file
 		local tmpfile = vim.fn.tempname()
 		vim.fn.writefile({ "test" }, tmpfile)
 		vim.cmd("edit " .. tmpfile)
@@ -105,7 +105,7 @@ describe("kiro.commands", function()
 		vim.cmd("edit " .. tmpfile)
 
 		local terminal_stub = stub(mock_terminal, "open")
-		terminal_stub.returns(true, nil)
+		terminal_stub.returns(Error.ok())
 
 		vim.cmd("TestCommand")
 
@@ -125,7 +125,7 @@ describe("kiro.commands", function()
 		vim.cmd("edit " .. tmpfile)
 
 		local terminal_stub = stub(mock_terminal, "open")
-		terminal_stub.returns(true, nil)
+		terminal_stub.returns(Error.ok())
 
 		vim.cmd("2,3TestCommand")
 
@@ -138,17 +138,14 @@ describe("kiro.commands", function()
 	end)
 
 	it("validates line range bounds", function()
-		-- Test the validation logic directly by checking it exists in the code
-		-- Vim itself prevents invalid ranges from reaching the command
 		Commands.register("TestCommand", "Test", mock_terminal, mock_config)
 
 		local tmpfile = vim.fn.tempname()
 		vim.fn.writefile({ "line1", "line2" }, tmpfile)
 		vim.cmd("edit " .. tmpfile)
 
-		-- Valid range should work
 		local terminal_stub = stub(mock_terminal, "open")
-		terminal_stub.returns(true, nil)
+		terminal_stub.returns(Error.ok())
 
 		vim.cmd("1,2TestCommand")
 		assert.stub(terminal_stub).was_called()
@@ -169,7 +166,7 @@ describe("kiro.commands", function()
 		vim.cmd("edit " .. tmpfile)
 
 		local terminal_stub = stub(mock_terminal, "open")
-		terminal_stub.returns(true, nil)
+		terminal_stub.returns(Error.ok())
 
 		vim.cmd("TestCommand")
 
@@ -188,12 +185,11 @@ describe("kiro.commands", function()
 		vim.fn.writefile({ "test2" }, tmpfile2)
 
 		local terminal_stub = stub(mock_terminal, "open")
-		terminal_stub.returns(true, nil)
+		terminal_stub.returns(Error.ok())
 
-		local success, err = Commands.send_with_files("Test prompt", { tmpfile1, tmpfile2 }, mock_terminal, mock_config)
+		local result = Commands.send_with_files("Test prompt", { tmpfile1, tmpfile2 }, mock_terminal, mock_config)
 
-		assert.is_true(success)
-		assert.is_nil(err)
+		assert.is_true(Error.is_ok(result))
 		assert.stub(terminal_stub).was_called()
 		local call_args = terminal_stub.calls[1].vals
 		assert.matches(tmpfile1, call_args[1])
@@ -205,10 +201,9 @@ describe("kiro.commands", function()
 	end)
 
 	it("validates files in multi-file context", function()
-		local success, err = Commands.send_with_files("Test", { "/nonexistent/file.txt" }, mock_terminal, mock_config)
+		local result = Commands.send_with_files("Test", { "/nonexistent/file.txt" }, mock_terminal, mock_config)
 
-		assert.is_false(success)
-		assert.is_not_nil(err)
-		assert.matches("not readable", err)
+		assert.is_true(Error.is_err(result))
+		assert.matches("not readable", result.error)
 	end)
 end)

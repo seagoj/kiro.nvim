@@ -5,6 +5,7 @@ local M = {}
 local Shell = require("kiro.terminal.shell")
 local Logger = require("kiro.logger")
 local Constants = require("kiro.constants")
+local Error = require("kiro.error")
 
 --- @type Terminal|nil
 local term = nil
@@ -55,11 +56,10 @@ local last_message = nil
 --- Open terminal with message
 --- @param message string Message to send
 --- @param config KiroConfigOptions Configuration options
---- @return boolean success True if opened successfully
---- @return string|nil error Error message if failed
+--- @return ErrorResult
 function M.open(message, config)
 	if vim.fn.executable(Constants.CLI.EXECUTABLE) == 0 then
-		return false, Constants.MESSAGES.KIRO_CLI_NOT_FOUND
+		return Error.err(Constants.MESSAGES.KIRO_CLI_NOT_FOUND, Error.codes.CLI_NOT_FOUND)
 	end
 
 	local terminal = get_terminal(config)
@@ -74,7 +74,7 @@ function M.open(message, config)
 	end
 
 	Logger.debug("Toggleterm opened with command: %s", command)
-	return true, nil
+	return Error.ok()
 end
 
 --- Close terminal

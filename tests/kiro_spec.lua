@@ -46,13 +46,13 @@ describe("kiro.setup", function()
 
 	it("returns error for missing kiro-cli", function()
 		local Terminal = require("kiro.terminal")
+		local Error = require("kiro.error")
 		local executable_stub = stub(vim.fn, "executable")
 		executable_stub.returns(0)
 
-		local success, err = Terminal.open("test message", { split = "vsplit" })
-		assert.is_false(success)
-		assert.is_not_nil(err)
-		assert.matches("kiro%-cli not found", err)
+		local result = Terminal.open("test message", { split = "vsplit" })
+		assert.is_true(Error.is_err(result))
+		assert.matches("kiro%-cli not found", result.error)
 
 		executable_stub:revert()
 	end)

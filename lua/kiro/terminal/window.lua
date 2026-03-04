@@ -5,6 +5,7 @@ local M = {}
 local Shell = require("kiro.terminal.shell")
 local Logger = require("kiro.logger")
 local Constants = require("kiro.constants")
+local Error = require("kiro.error")
 
 --- @class WindowState
 --- @field bufnr number|nil Buffer number
@@ -114,32 +115,30 @@ end
 --- Send message to existing terminal
 --- @param message string Message to send
 --- @param session_name string|nil Session name
---- @return boolean success True if message was sent successfully
---- @return string|nil error Error message if failed
+--- @return ErrorResult
 function M.send_message(message, session_name)
 	local state = get_session(session_name)
 	
 	if not state.bufnr or not vim.api.nvim_buf_is_valid(state.bufnr) then
-		return false, Constants.MESSAGES.TERMINAL_BUFFER_INVALID
+		return Error.err(Constants.MESSAGES.TERMINAL_BUFFER_INVALID, Error.codes.TERMINAL_INVALID)
 	end
 
 	local channel = vim.bo[state.bufnr].channel
 	if channel == 0 then
-		return false, Constants.MESSAGES.TERMINAL_CHANNEL_UNAVAILABLE
+		return Error.err(Constants.MESSAGES.TERMINAL_CHANNEL_UNAVAILABLE, Error.codes.CHANNEL_UNAVAILABLE)
 	end
 
-	local ok, err = pcall(function()
+	local result = Error.wrap(function()
 		local escaped = Shell.escape_arg(message)
 		vim.api.nvim_chan_send(channel, escaped .. "\n")
-	end)
+	end, Constants.MESSAGES.FAILED_TO_SEND, Error.codes.SEND_FAILED)
 
-	if not ok then
-		return false, string.format(Constants.MESSAGES.FAILED_TO_SEND, err)
+	if Error.is_ok(result) then
+		state.last_message = message
+		Logger.debug("Message sent to terminal (session: %s)", state.name)
 	end
-
-	state.last_message = message
-	Logger.debug("Message sent to terminal (session: %s)", state.name)
-	return true, nil
+	
+	return result
 end
 
 --- Create new terminal with command
@@ -147,21 +146,18 @@ end
 --- @param split_cmd string Split command ('split', 'vsplit', or 'float')
 --- @param config KiroConfigOptions Configuration options
 --- @param session_name string|nil Session name
---- @return boolean success True if terminal was created successfully
---- @return string|nil error Error message if failed
+--- @return ErrorResult
 function M.create(command, split_cmd, config, session_name)
 	local state = get_session(session_name)
 	
-	local ok, err = pcall(function()
+	local result = Error.wrap(function()
 		if split_cmd == "float" then
-			-- Create buffer first
 			local bufnr = vim.api.nvim_create_buf(false, true)
 			M.create_float_window(bufnr, config)
 			vim.fn.termopen(command)
 			state.bufnr = bufnr
 			state.winid = vim.api.nvim_get_current_win()
 		else
-			-- Build split command with optional size
 			local full_split_cmd = split_cmd
 			if config.terminal_size then
 				full_split_cmd = string.format("%s %d", split_cmd, config.terminal_size)
@@ -172,20 +168,16 @@ function M.create(command, split_cmd, config, session_name)
 			state.winid = vim.api.nvim_get_current_win()
 		end
 
-		-- Set buffer name for identification
 		vim.api.nvim_buf_set_name(state.bufnr, string.format("kiro://%s", state.name))
 
-		-- Set up buffer-local keymaps
 		if config and config.keymaps then
 			M.setup_keymaps(config, session_name)
 		end
 
-		-- Set buffer options for better UX
 		vim.bo[state.bufnr].buflisted = false -- luacheck: ignore
 		vim.wo[state.winid].number = false -- luacheck: ignore
 		vim.wo[state.winid].relativenumber = false -- luacheck: ignore
 
-		-- Auto-cleanup on buffer delete
 		vim.api.nvim_create_autocmd("BufDelete", {
 			buffer = state.bufnr,
 			once = true,
@@ -197,13 +189,9 @@ function M.create(command, split_cmd, config, session_name)
 		})
 
 		Logger.debug("Terminal created: bufnr=%d, winid=%d, session=%s", state.bufnr, state.winid, state.name)
-	end)
+	end, Constants.MESSAGES.FAILED_TO_CREATE, Error.codes.CREATE_FAILED)
 
-	if not ok then
-		return false, string.format(Constants.MESSAGES.FAILED_TO_CREATE, err)
-	end
-
-	return true, nil
+	return result
 end
 
 --- Create floating window with buffer

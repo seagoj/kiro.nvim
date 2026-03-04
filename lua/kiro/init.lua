@@ -8,6 +8,7 @@ local Commands = require("kiro.commands")
 local Logger = require("kiro.logger")
 local Constants = require("kiro.constants")
 local Lsp = require("kiro.lsp")
+local Validate = require("kiro.validate")
 
 local state = {
 	config = nil,
@@ -17,22 +18,22 @@ local state = {
 --- Setup the Kiro plugin with optional configuration
 --- @param opts KiroConfigOptions|nil Configuration options
 function M.setup(opts)
-	local config, err = Config.init(opts)
-	if err ~= nil then
-		Logger.error("Invalid config: %s", { notify = true }, err)
+	local result = Config.init(opts)
+	if not result.ok then
+		Logger.error("Invalid config: %s", { notify = true }, result.error)
 		return
 	end
+	local config = result.value
+	
 	if not config.force_setup and state.initialized then
 		return
 	end
 
-	-- Enable logging if debug mode is on
 	if config.debug then
 		Logger.enable(Constants.LOG_LEVELS.DEBUG)
 		Logger.debug("Configuration: %s", vim.inspect(config))
 	end
 
-	-- Set history size
 	local History = require("kiro.history")
 	History.set_max_size(config.history_size)
 
@@ -49,11 +50,9 @@ function M.setup(opts)
 		M.register_command(name, prompt)
 	end
 
-	-- Setup LSP integration if enabled
 	if config.enable_lsp then
 		local lsp_ok = Lsp.setup()
 
-		-- Register LSP status command only if LSP setup succeeded
 		if lsp_ok then
 			vim.api.nvim_create_user_command("KiroLspStatus", function()
 				Lsp.show_status()
@@ -110,15 +109,31 @@ function M.setup(opts)
 end
 
 --- Register a custom command
---- @param name string Command name
+--- @param name string Command name (must be non-empty, PascalCase recommended)
 --- @param prompt string|function Prompt text or function that returns prompt
+--- @return boolean success True if registered successfully
+--- @return string|nil error Error message if validation fails
 function M.register_command(name, prompt)
-	if not state.initialized then
-		Logger.error(Constants.MESSAGES.NOT_INITIALIZED)
-		return
+	-- Validate parameters
+	local valid, err = Validate.all({
+		{ Validate.not_empty, name, "name" },
+		{ Validate.type, prompt, { "string", "function" }, "prompt" },
+	})
+	
+	if not valid then
+		Logger.error("Invalid parameters: %s", { notify = true }, err)
+		return false, err
 	end
+	
+	if not state.initialized then
+		local err_msg = Constants.MESSAGES.NOT_INITIALIZED
+		Logger.error(err_msg)
+		return false, err_msg
+	end
+	
 	Logger.debug("Registering command: %s", name)
 	Commands.register(name, prompt, Terminal, state.config)
+	return true, nil
 end
 
 --- Close the Kiro terminal
@@ -147,9 +162,9 @@ function M.resend()
 	local last = Window.get_last_message()
 	if last then
 		Logger.debug("Resending last message")
-		local success, err = Terminal.open(last, state.config)
-		if not success then
-			Logger.error(Constants.MESSAGES.FAILED_TO_RESEND, { notify = true }, err or "unknown error")
+		local result = Terminal.open(last, state.config)
+		if not result.ok then
+			Logger.error(Constants.MESSAGES.FAILED_TO_RESEND, { notify = true }, result.error or "unknown error")
 		end
 	else
 		Logger.warn(Constants.MESSAGES.NO_PREVIOUS_MESSAGE, { notify = true })
@@ -171,11 +186,26 @@ function M.clear_history()
 end
 
 --- Send a message from history
---- @param index number History index (1 = oldest, -1 = newest)
+--- @param index number History index (1 = oldest, -1 = newest, must be non-zero)
+--- @return boolean success True if sent successfully
+--- @return string|nil error Error message if failed
 function M.send_from_history(index)
+	-- Validate parameters
+	local valid, err = Validate.type(index, "number", "index")
+	if not valid then
+		Logger.error("Invalid parameters: %s", { notify = true }, err)
+		return false, err
+	end
+	
+	if index == 0 then
+		local err_msg = "index cannot be 0 (use 1 for oldest, -1 for newest)"
+		Logger.error(err_msg, { notify = true })
+		return false, err_msg
+	end
+	
 	if not state.initialized then
 		Logger.error(Constants.MESSAGES.NOT_INITIALIZED, { notify = true })
-		return
+		return false, Constants.MESSAGES.NOT_INITIALIZED
 	end
 
 	local History = require("kiro.history")
@@ -183,41 +213,64 @@ function M.send_from_history(index)
 
 	if #history == 0 then
 		Logger.warn("No command history", { notify = true })
-		return
+		return false, "No command history"
 	end
 
-	-- Handle negative indices
 	if index < 0 then
 		index = #history + index + 1
 	end
 
 	if index < 1 or index > #history then
-		Logger.error("Invalid history index: %d (history size: %d)", { notify = true }, index, #history)
-		return
+		local err_msg = string.format("Invalid history index: %d (history size: %d)", index, #history)
+		Logger.error(err_msg, { notify = true })
+		return false, err_msg
 	end
 
 	local message = history[index]
 	Logger.debug("Sending from history [%d]: %s", index, message)
-	local success, err = Terminal.open(message, state.config)
-	if not success then
-		Logger.error(Constants.MESSAGES.FAILED_TO_OPEN, { notify = true }, err or "unknown error")
+	local result = Terminal.open(message, state.config)
+	if not result.ok then
+		Logger.error(Constants.MESSAGES.FAILED_TO_OPEN, { notify = true }, result.error or "unknown error")
+		return false, result.error
 	end
+	return true, nil
 end
 
 --- Send message with multiple files as context
---- @param prompt string Prompt text
---- @param files string[] List of file paths
+--- @param prompt string Prompt text (can be empty)
+--- @param files string[] List of file paths (must be non-empty array)
+--- @return boolean success True if sent successfully
+--- @return string|nil error Error message if failed
 function M.send_with_files(prompt, files)
+	-- Validate parameters
+	local valid, err = Validate.all({
+		{ Validate.type, prompt, "string", "prompt" },
+		{ Validate.type, files, "table", "files" },
+	})
+	
+	if not valid then
+		Logger.error("Invalid parameters: %s", { notify = true }, err)
+		return false, err
+	end
+	
+	if #files == 0 then
+		local err_msg = "files array cannot be empty"
+		Logger.error(err_msg, { notify = true })
+		return false, err_msg
+	end
+	
 	if not state.initialized then
 		Logger.error(Constants.MESSAGES.NOT_INITIALIZED, { notify = true })
-		return
+		return false, Constants.MESSAGES.NOT_INITIALIZED
 	end
 
 	Logger.debug("Sending with %d files", #files)
-	local success, err = Commands.send_with_files(prompt, files, Terminal, state.config)
-	if not success then
-		Logger.error(Constants.MESSAGES.FAILED_TO_OPEN, { notify = true }, err or "unknown error")
+	local result = Commands.send_with_files(prompt, files, Terminal, state.config)
+	if not result.ok then
+		Logger.error(Constants.MESSAGES.FAILED_TO_OPEN, { notify = true }, result.error or "unknown error")
+		return false, result.error
 	end
+	return true, nil
 end
 
 --- Get LSP server status
@@ -238,21 +291,30 @@ function M.lsp_detect()
 end
 
 --- Set current terminal session
---- @param name string Session name
+--- @param name string Session name (must be non-empty)
+--- @return boolean success True if set successfully
+--- @return string|nil error Error message if validation fails
 function M.set_session(name)
+	local valid, err = Validate.not_empty(name, "name")
+	if not valid then
+		Logger.error("Invalid parameters: %s", { notify = true }, err)
+		return false, err
+	end
+	
 	local Window = require("kiro.terminal.window")
 	Window.set_session(name)
+	return true, nil
 end
 
 --- Get current terminal session name
---- @return string
+--- @return string name Current session name
 function M.get_session()
 	local Window = require("kiro.terminal.window")
 	return Window.get_current_session()
 end
 
 --- List all terminal sessions
---- @return table<string, {active: boolean, last_message: string|nil}>
+--- @return table<string, {active: boolean, last_message: string|nil}> sessions Map of session names to info
 function M.list_sessions()
 	local Window = require("kiro.terminal.window")
 	return Window.list_sessions()

@@ -6,7 +6,19 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
-# Run tests (plenary will be auto-installed by minimal_init.lua)
+# Cleanup function
+cleanup() {
+	# Kill all nvim processes running our tests (graceful first)
+	pkill -f "minimal_init.lua.*plenary" 2>/dev/null || true
+	sleep 0.5
+	# Force kill any remaining
+	pkill -9 -f "minimal_init.lua.*plenary" 2>/dev/null || true
+	pkill -9 -f "plenary.busted" 2>/dev/null || true
+}
+
+trap cleanup EXIT INT TERM
+
+# Run tests
 echo "Running tests..."
 nvim --headless \
 	-u "$SCRIPT_DIR/minimal_init.lua" \

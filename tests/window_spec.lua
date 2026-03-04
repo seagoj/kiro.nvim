@@ -2,7 +2,7 @@ local Window = require("kiro.terminal.window")
 
 describe("kiro.terminal.window", function()
 	after_each(function()
-		Window.close()
+		Window.close_all()
 	end)
 
 	it("reports invalid buffer initially", function()
@@ -36,11 +36,9 @@ describe("kiro.terminal.window", function()
 		local config = { keymaps = { close = "<C-q>", resend = "<C-r>" } }
 		Window.create("kiro-cli chat 'test'", "vsplit", config)
 
-		-- Send a message
 		Window.send_message("test message")
 		assert.equals("test message", Window.get_last_message())
 
-		-- Close should clear it
 		Window.close()
 		assert.is_nil(Window.get_last_message())
 	end)

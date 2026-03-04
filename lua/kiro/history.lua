@@ -16,12 +16,18 @@ local state = {
 	current_index = nil,
 }
 
---- Add a message to history
---- @param message string Message to add
+--- Add a message to history (skips consecutive duplicates)
+--- @param message string Message to add (must be non-empty)
+--- @return boolean success True if added, false if duplicate or invalid
 function M.add(message)
+	if type(message) ~= "string" or message == "" then
+		Logger.warn("Cannot add empty or non-string message to history")
+		return false
+	end
+	
 	-- Don't add duplicates of the last message
 	if #state.messages > 0 and state.messages[#state.messages] == message then
-		return
+		return false
 	end
 
 	table.insert(state.messages, message)
@@ -35,10 +41,11 @@ function M.add(message)
 	state.current_index = nil
 
 	Logger.debug("Added to history (total: %d)", #state.messages)
+	return true
 end
 
---- Get previous message in history
---- @return string|nil Previous message or nil if at start
+--- Get previous message in history (for navigation)
+--- @return string|nil message Previous message or nil if at start
 function M.previous()
 	if #state.messages == 0 then
 		return nil
@@ -53,8 +60,8 @@ function M.previous()
 	return state.messages[state.current_index]
 end
 
---- Get next message in history
---- @return string|nil Next message or nil if at end
+--- Get next message in history (for navigation)
+--- @return string|nil message Next message or nil if at end
 function M.next()
 	if #state.messages == 0 or state.current_index == nil then
 		return nil
@@ -70,31 +77,40 @@ function M.next()
 	return nil
 end
 
---- Get all history
---- @return string[] List of messages
+--- Get all history messages
+--- @return string[] messages Copy of all messages (oldest to newest)
 function M.get_all()
 	return vim.deepcopy(state.messages)
 end
 
---- Clear history
+--- Clear all history
 function M.clear()
 	state.messages = {}
 	state.current_index = nil
 	Logger.debug("History cleared")
 end
 
---- Get history size
---- @return number Number of messages in history
+--- Get current history size
+--- @return number count Number of messages in history
 function M.size()
 	return #state.messages
 end
 
 --- Set maximum history size
---- @param size number Maximum number of messages to keep
+--- @param size number Maximum messages to keep (must be >= 1)
+--- @return boolean success True if set successfully
+--- @return string|nil error Error message if invalid
 function M.set_max_size(size)
+	if type(size) ~= "number" then
+		local err = "max_size must be a number"
+		Logger.warn(err)
+		return false, err
+	end
+	
 	if size < 1 then
-		Logger.warn("History max_size must be at least 1")
-		return
+		local err = "max_size must be at least 1"
+		Logger.warn(err)
+		return false, err
 	end
 
 	state.max_size = size
