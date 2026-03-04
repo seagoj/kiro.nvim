@@ -6,6 +6,7 @@ local Shell = require("kiro.terminal.shell")
 local Logger = require("kiro.logger")
 local Constants = require("kiro.constants")
 local Error = require("kiro.error")
+local History = require("kiro.history")
 
 --- @type Terminal|nil
 local term = nil
@@ -26,13 +27,24 @@ local function get_terminal(config)
 	end
 
 	local Terminal = require("toggleterm.terminal").Terminal
-	local direction = config.split == "split" and "horizontal" or "vertical"
+	
+	-- Determine direction based on split config
+	local direction
+	if config.split == "float" then
+		direction = "float"
+	elseif config.split == "split" then
+		direction = "horizontal"
+	else
+		direction = "vertical"
+	end
+	
 	local size = config.terminal_size or (direction == "horizontal" and 15 or 80)
 
 	term = Terminal:new({
 		direction = direction,
 		size = size,
 		close_on_exit = false,
+		float_opts = config.split == "float" and config.float_opts or nil,
 		on_open = function()
 			if config.keymaps and config.keymaps.close then
 				vim.keymap.set("n", config.keymaps.close, function()
@@ -62,19 +74,24 @@ function M.open(message, config)
 		return Error.err(Constants.MESSAGES.KIRO_CLI_NOT_FOUND, Error.codes.CLI_NOT_FOUND)
 	end
 
-	local terminal = get_terminal(config)
-	local command = Shell.build_command(message, config.profile)
+	local result = Error.wrap(function()
+		local terminal = get_terminal(config)
+		local command = Shell.build_command(message, config.profile)
 
-	terminal.cmd = command
-	terminal:open()
+		terminal.cmd = command
+		terminal:open()
 
-	last_message = message
-	if config.auto_insert_mode then
-		vim.cmd("startinsert")
-	end
+		last_message = message
+		History.add(message)
+		
+		if config.auto_insert_mode then
+			vim.cmd("startinsert")
+		end
 
-	Logger.debug("Toggleterm opened with command: %s", command)
-	return Error.ok()
+		Logger.debug("Toggleterm opened with command: %s", command)
+	end, "Failed to open toggleterm", Error.codes.CREATE_FAILED)
+
+	return result
 end
 
 --- Close terminal

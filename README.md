@@ -140,7 +140,17 @@ require('kiro').setup({
 })
 ```
 
-This provides better terminal management with toggleterm's features like persistent terminals and easier toggling. Falls back to default terminal if toggleterm is not available.
+**Features:**
+- Persistent terminals across sessions
+- Better terminal lifecycle management
+- Supports all split types (split, vsplit, float)
+- Automatic fallback to default terminal if not available
+- Respects all Kiro configuration options
+
+**Benefits:**
+- Terminals persist when switching buffers
+- Easier toggling with toggleterm commands
+- Better integration with toggleterm workflows
 
 ### Floating Window
 
