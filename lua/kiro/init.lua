@@ -311,10 +311,29 @@ function M.send_with_files(prompt, files)
 		return false, Constants.MESSAGES.NOT_INITIALIZED
 	end
 
-	Logger.debug("Sending with %d files", #files)
+	-- Expand glob patterns
+	local expanded_files = {}
+	for _, pattern in ipairs(files) do
+		local matches = vim.fn.glob(pattern, false, true)
+		if #matches == 0 then
+			Logger.warn("No files matched pattern: %s", nil, pattern)
+		else
+			for _, file in ipairs(matches) do
+				table.insert(expanded_files, file)
+			end
+		end
+	end
+
+	if #expanded_files == 0 then
+		local err_msg = "No files found matching patterns"
+		Logger.error(err_msg, { notify = true })
+		return false, err_msg
+	end
+
+	Logger.debug("Expanded %d patterns to %d files", #files, #expanded_files)
 	local Commands = lazy_require("kiro.commands")
 	local Terminal = lazy_require("kiro.terminal")
-	local result = Commands.send_with_files(prompt, files, Terminal, State.get_config())
+	local result = Commands.send_with_files(prompt, expanded_files, Terminal, State.get_config())
 	if not result.ok then
 		Logger.error(Constants.MESSAGES.FAILED_TO_OPEN, { notify = true }, result.error or "unknown error")
 		return false, result.error

@@ -121,4 +121,32 @@ describe("kiro.setup", function()
 		kiro.setup({ force_setup = true })
 		assert.is_function(kiro.send_with_files)
 	end)
+
+	it("expands glob patterns in send_with_files", function()
+		kiro.setup({ force_setup = true })
+		
+		local glob_stub = stub(vim.fn, "glob")
+		glob_stub.returns({ "file1.lua", "file2.lua" })
+		
+		local success, err = kiro.send_with_files("Test", { "*.lua" })
+		
+		glob_stub:revert()
+		
+		-- Should succeed (terminal open will fail but glob expansion works)
+		assert.is_nil(err)
+	end)
+
+	it("handles no matches for glob pattern", function()
+		kiro.setup({ force_setup = true })
+		
+		local glob_stub = stub(vim.fn, "glob")
+		glob_stub.returns({})
+		
+		local success, err = kiro.send_with_files("Test", { "/nonexistent/*.lua" })
+		
+		glob_stub:revert()
+		
+		assert.is_false(success)
+		assert.matches("No files found", err)
+	end)
 end)

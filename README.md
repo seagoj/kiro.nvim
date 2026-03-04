@@ -249,6 +249,17 @@ kiro.send_with_files('Explain these files', {
   'lua/kiro/config.lua',
 })
 
+-- Send with glob patterns
+kiro.send_with_files('Review all Lua files', { 'lua/**/*.lua' })
+kiro.send_with_files('Check tests', { 'tests/*_spec.lua' })
+
+-- Mix explicit files and patterns
+kiro.send_with_files('Review code', {
+  'README.md',
+  'lua/kiro/*.lua',
+  'tests/*_spec.lua',
+})
+
 -- Clear terminal and history
 kiro.clear_terminal()
 
