@@ -228,7 +228,12 @@ All commands support visual selection ranges. Select lines in visual mode and ru
 
 " Open chat with selected code (in visual mode)
 :'<,'>KiroBuffer
+
+" Open chat without any context (empty buffer, no prompt)
+:KiroBuffer
 ```
+
+Kiro will open in all cases - with file context, without file context, or even with no message at all (just opens an empty chat session).
 
 ### Lua API
 

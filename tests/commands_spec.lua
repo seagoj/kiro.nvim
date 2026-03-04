@@ -29,24 +29,38 @@ describe("kiro.commands", function()
 		assert.is_not_nil(vim.api.nvim_get_commands({}).TestCommand)
 	end)
 
-	it("handles missing file error", function()
-		Commands.register("TestCommand", "Test", mock_terminal, mock_config)
+	it("allows empty buffer with prompt", function()
+		Commands.register("TestCommand", "Test prompt", mock_terminal, mock_config)
 
 		-- Create empty buffer
 		vim.cmd("enew")
 
-		local notify_stub = stub(vim, "notify")
-		local error_called = false
-		notify_stub.invokes(function(msg, level)
-			if level == vim.log.levels.ERROR and msg:match("No file") then
-				error_called = true
-			end
-		end)
+		local open_called = false
+		mock_terminal.open = function(msg, cfg)
+			open_called = true
+			assert.equals("Test prompt", msg)
+			return { ok = true }
+		end
 
 		vim.cmd("TestCommand")
-		assert.is_true(error_called)
+		assert.is_true(open_called)
+	end)
 
-		notify_stub:revert()
+	it("allows empty buffer without prompt", function()
+		Commands.register("TestCommand", "", mock_terminal, mock_config)
+
+		-- Create empty buffer
+		vim.cmd("enew")
+
+		local open_called = false
+		mock_terminal.open = function(msg, cfg)
+			open_called = true
+			assert.equals("", msg)  -- Empty message
+			return { ok = true }
+		end
+
+		vim.cmd("TestCommand")
+		assert.is_true(open_called)
 	end)
 
 	it("handles unreadable file error", function()

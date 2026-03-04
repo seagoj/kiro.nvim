@@ -12,7 +12,8 @@ local Error = require("kiro.error")
 local function build_file_context(opts)
 	local file = vim.fn.expand("%")
 	if file == "" then
-		return Error.err(Constants.MESSAGES.NO_FILE, Error.codes.NO_FILE)
+		-- Return empty context instead of error
+		return Error.ok("")
 	end
 
 	if vim.fn.filereadable(file) == 0 then
@@ -77,19 +78,26 @@ function M.register(name, prompt, terminal, config)
 	vim.api.nvim_create_user_command(name, function(opts)
 		Logger.debug("Executing command: %s", name)
 		local result = build_file_context(opts)
-		local context = ""
 		
 		if Error.is_err(result) then
 			Logger.error(result.error, { notify = true })
-		else
-			context = result.value
+			return
 		end
+		
+		local context = result.value
 
 		local message
 		if type(prompt) == "function" then
-			message = prompt(opts) .. " " .. context
+			message = prompt(opts)
+			if context ~= "" then
+				message = message .. " " .. context
+			end
 		else
-			message = prompt == "" and context or prompt .. " " .. context
+			if prompt ~= "" then
+				message = context ~= "" and (prompt .. " " .. context) or prompt
+			else
+				message = context
+			end
 		end
 
 		Logger.debug("Sending message: %s", message)
