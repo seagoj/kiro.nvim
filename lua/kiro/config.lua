@@ -60,72 +60,108 @@ M.defaults = {
 	},
 }
 
---- Validate configuration options
+--- Validate configuration options with detailed error messages
 --- @param config KiroConfigOptions Configuration to validate
---- @return string|nil Error message if invalid, nil if valid
+--- @return string|nil error Error message if invalid, nil if valid
+--- @return string|nil suggestion Suggestion to fix the error
 local function validate(config)
-	if config.register_default_commands ~= nil and type(config.register_default_commands) ~= "boolean" then
-		return "register_default_commands must be a boolean"
+	local Validate = require("kiro.validate")
+	
+	-- Boolean options
+	for _, opt in ipairs({ "register_default_commands", "reuse_terminal", "auto_insert_mode", 
+	                       "force_setup", "debug", "enable_lsp", "use_toggleterm" }) do
+		if config[opt] ~= nil then
+			local valid, err = Validate.type(config[opt], "boolean", opt)
+			if not valid then
+				return err, string.format("Try: %s = true or %s = false", opt, opt)
+			end
+		end
 	end
-	if
-		config.split ~= nil
-		and not vim.tbl_contains(
+	
+	-- Split option
+	if config.split ~= nil then
+		local valid, err = Validate.one_of(
+			config.split,
 			{ Constants.SPLIT.HORIZONTAL, Constants.SPLIT.VERTICAL, Constants.SPLIT.FLOAT },
-			config.split
+			"split"
 		)
-	then
-		return "split must be one of split|vsplit|float"
+		if not valid then
+			return err, "Try: split = 'vsplit' (vertical), 'split' (horizontal), or 'float'"
+		end
 	end
-	if config.reuse_terminal ~= nil and type(config.reuse_terminal) ~= "boolean" then
-		return "reuse_terminal must be a boolean"
-	end
-	if config.auto_insert_mode ~= nil and type(config.auto_insert_mode) ~= "boolean" then
-		return "auto_insert_mode must be a boolean"
-	end
-	if config.force_setup ~= nil and type(config.force_setup) ~= "boolean" then
-		return "force_setup must be a boolean"
-	end
-	if config.debug ~= nil and type(config.debug) ~= "boolean" then
-		return "debug must be a boolean"
-	end
-	if config.keymaps ~= nil and type(config.keymaps) ~= "table" then
-		return "keymaps must be a table"
-	end
-	if config.terminal_size ~= nil and type(config.terminal_size) ~= "number" then
-		return "terminal_size must be a number"
-	end
-	if
-		config.terminal_size ~= nil
-		and (
-			config.terminal_size < Constants.LIMITS.MIN_TERMINAL_SIZE
-			or config.terminal_size > Constants.LIMITS.MAX_TERMINAL_SIZE
-		)
-	then
-		return string.format(
-			"terminal_size must be between %d and %d",
+	
+	-- Terminal size
+	if config.terminal_size ~= nil then
+		local valid, err = Validate.range(
+			config.terminal_size,
 			Constants.LIMITS.MIN_TERMINAL_SIZE,
-			Constants.LIMITS.MAX_TERMINAL_SIZE
+			Constants.LIMITS.MAX_TERMINAL_SIZE,
+			"terminal_size"
 		)
+		if not valid then
+			return err, string.format("Try a value between %d and %d", 
+				Constants.LIMITS.MIN_TERMINAL_SIZE, Constants.LIMITS.MAX_TERMINAL_SIZE)
+		end
 	end
-	if config.profile ~= nil and type(config.profile) ~= "string" then
-		return "profile must be a string"
+	
+	-- History size
+	if config.history_size ~= nil then
+		local valid, err = Validate.type(config.history_size, "number", "history_size")
+		if not valid then
+			return err, "Try: history_size = 50"
+		end
+		if config.history_size < 1 then
+			return "history_size must be at least 1", "Try: history_size = 50"
+		end
 	end
-	if config.history_size ~= nil and type(config.history_size) ~= "number" then
-		return "history_size must be a number"
+	
+	-- Profile
+	if config.profile ~= nil then
+		local valid, err = Validate.type(config.profile, "string", "profile")
+		if not valid then
+			return err, "Try: profile = 'work' or profile = 'personal'"
+		end
 	end
-	if config.history_size ~= nil and config.history_size < 1 then
-		return "history_size must be at least 1"
+	
+	-- Keymaps
+	if config.keymaps ~= nil then
+		local valid, err = Validate.type(config.keymaps, "table", "keymaps")
+		if not valid then
+			return err, "Try: keymaps = { close = '<C-q>', resend = '<C-r>' }"
+		end
 	end
-	if config.enable_lsp ~= nil and type(config.enable_lsp) ~= "boolean" then
-		return "enable_lsp must be a boolean"
+	
+	-- Float options
+	if config.float_opts ~= nil then
+		local valid, err = Validate.type(config.float_opts, "table", "float_opts")
+		if not valid then
+			return err, "Try: float_opts = { width = 0.8, height = 0.8 }"
+		end
+		
+		-- Validate float_opts fields
+		for _, field in ipairs({ "width", "height" }) do
+			if config.float_opts[field] ~= nil then
+				local v, e = Validate.type(config.float_opts[field], "number", "float_opts." .. field)
+				if not v then
+					return e, string.format("Try: float_opts = { %s = 0.8 }", field)
+				end
+				if config.float_opts[field] <= 0 or config.float_opts[field] > 1 then
+					return string.format("float_opts.%s must be between 0 and 1", field),
+						string.format("Try: float_opts = { %s = 0.8 }", field)
+				end
+			end
+		end
 	end
-	if config.use_toggleterm ~= nil and type(config.use_toggleterm) ~= "boolean" then
-		return "use_toggleterm must be a boolean"
+	
+	-- Commands validation
+	if config.commands ~= nil then
+		local valid, err = Validate.type(config.commands, "table", "commands")
+		if not valid then
+			return err, "Try: commands = { MyCommand = 'prompt text' }"
+		end
 	end
-	if config.float_opts ~= nil and type(config.float_opts) ~= "table" then
-		return "float_opts must be a table"
-	end
-	return nil
+	
+	return nil, nil
 end
 
 --- Merge user options with defaults
@@ -137,14 +173,58 @@ end
 
 --- Initialize configuration with validation
 --- @param opts KiroConfigOptions|nil User configuration options
---- @return ErrorResult
+--- @return ErrorResult result Config on success, error with suggestion on failure
 function M.init(opts)
 	local config = merge(opts)
-	local err = validate(config)
+	local err, suggestion = validate(config)
 	if err then
-		return Error.err(err, Error.codes.CONFIG_INVALID)
+		local full_error = suggestion and (err .. "\n  Suggestion: " .. suggestion) or err
+		return Error.err(full_error, Error.codes.CONFIG_INVALID)
 	end
 	return Error.ok(config)
+end
+
+--- Load project-specific configuration from .kiro.lua
+--- @param project_root string|nil Project root directory (default: cwd)
+--- @return table|nil config Project config or nil if not found
+--- @return string|nil error Error message if load failed
+function M.load_project_config(project_root)
+	project_root = project_root or vim.fn.getcwd()
+	local config_path = project_root .. "/.kiro.lua"
+	
+	if vim.fn.filereadable(config_path) == 0 then
+		return nil, nil -- Not an error, just no project config
+	end
+	
+	local ok, result = pcall(dofile, config_path)
+	if not ok then
+		return nil, string.format("Failed to load .kiro.lua: %s", result)
+	end
+	
+	if type(result) ~= "table" then
+		return nil, ".kiro.lua must return a table"
+	end
+	
+	return result, nil
+end
+
+--- Merge global and project configurations
+--- @param global_opts KiroConfigOptions|nil Global configuration
+--- @param project_root string|nil Project root directory
+--- @return KiroConfigOptions config Merged configuration
+--- @return string|nil error Error message if project config invalid
+function M.merge_with_project(global_opts, project_root)
+	local project_config, err = M.load_project_config(project_root)
+	if err then
+		return global_opts or {}, err
+	end
+	
+	if not project_config then
+		return global_opts or {}, nil
+	end
+	
+	-- Project config takes precedence
+	return vim.tbl_deep_extend("force", global_opts or {}, project_config), nil
 end
 
 return M

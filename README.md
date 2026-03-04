@@ -85,6 +85,24 @@ EOF
   - `row` (number, optional) - Row position (default: centered)
   - `col` (number, optional) - Column position (default: centered)
 
+### Project-Specific Configuration
+
+Create a `.kiro.lua` file in your project root to override global settings:
+
+```lua
+-- .kiro.lua
+return {
+  split = 'float',
+  profile = 'work',
+  commands = {
+    KiroReview = 'Review this code in',
+    KiroTest = 'Generate tests for',
+  },
+}
+```
+
+Project config takes precedence over global config. See `examples/.kiro.lua` for a complete example.
+
 ### Terminal Size
 
 Control the size of the terminal split:
@@ -180,11 +198,15 @@ require('kiro').setup({
 
 ## Commands
 
-The plugin provides one built-in command when `register_commands = true`:
+The plugin provides built-in commands:
 
 | Command | Description |
 |---------|-------------|
 | `:KiroBuffer` | Open Kiro chat with current file context |
+| `:KiroSession [name]` | Get or set current terminal session |
+| `:KiroSessions` | List all terminal sessions |
+| `:KiroLspStatus` | Show LSP server status (if LSP enabled) |
+| `:KiroCheckConfig` | Validate current configuration |
 
 All commands support visual selection ranges. Select lines in visual mode and run a command to include only those lines in the context.
 

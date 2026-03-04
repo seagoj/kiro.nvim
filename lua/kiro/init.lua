@@ -18,7 +18,13 @@ local state = {
 --- Setup the Kiro plugin with optional configuration
 --- @param opts KiroConfigOptions|nil Configuration options
 function M.setup(opts)
-	local result = Config.init(opts)
+	-- Try to load project-specific config
+	local merged_opts, project_err = Config.merge_with_project(opts)
+	if project_err then
+		Logger.warn("Project config error: %s", project_err)
+	end
+	
+	local result = Config.init(merged_opts)
 	if not result.ok then
 		Logger.error("Invalid config: %s", { notify = true }, result.error)
 		return
@@ -104,6 +110,25 @@ function M.setup(opts)
 
 		vim.notify(table.concat(lines, "\n"), vim.log.levels.INFO, { title = "Kiro Sessions" })
 	end, { desc = "List all Kiro terminal sessions" })
+
+	-- Register config validation command
+	vim.api.nvim_create_user_command("KiroCheckConfig", function()
+		local Migrate = require("kiro.migrate")
+		local valid, issues = Migrate.validate_schema(state.config or {})
+		
+		if valid then
+			vim.notify("✓ Configuration is valid", vim.log.levels.INFO, { title = "Kiro Config" })
+		else
+			local lines = { "Configuration Issues:", "" }
+			for _, issue in ipairs(issues) do
+				table.insert(lines, string.format("  • %s", issue.message))
+				if issue.suggestion then
+					table.insert(lines, string.format("    → %s", issue.suggestion))
+				end
+			end
+			vim.notify(table.concat(lines, "\n"), vim.log.levels.WARN, { title = "Kiro Config" })
+		end
+	end, { desc = "Validate Kiro configuration" })
 
 	Logger.debug("Kiro initialized successfully")
 end
