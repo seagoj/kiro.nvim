@@ -35,8 +35,6 @@ local function check_configuration(health)
 	health.info(string.format("auto_insert_mode: %s", tostring(config.auto_insert_mode)))
 	health.info(string.format("enable_lsp: %s", tostring(config.enable_lsp)))
 	health.info(string.format("register_default_commands: %s", tostring(config.register_default_commands)))
-	health.info(string.format("command_palette: %s", tostring(config.command_palette)))
-	health.info(string.format("palette_backend: %s", config.palette_backend))
 	health.info(string.format("use_toggleterm: %s", tostring(config.use_toggleterm)))
 	
 	if config.profile then
@@ -147,7 +145,7 @@ local function check_commands(health)
 	end
 	
 	-- Count built-in vs custom
-	local builtin = { "KiroBuffer", "KiroSession", "KiroSessions" }
+	local builtin = { "KiroBuffer", "KiroBuffers" }
 	local builtin_count = 0
 	local custom_count = 0
 	local custom_names = {}

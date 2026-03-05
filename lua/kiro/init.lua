@@ -70,35 +70,13 @@ function M.setup(opts)
 		end
 	end
 
-	-- Register session management commands
-	-- Register session management commands
-	vim.api.nvim_create_user_command("KiroSession", function(opts)
-		if opts.args == "" then
-			-- Show current session
-			local current = M.get_session()
-			vim.notify("Current session: " .. current, vim.log.levels.INFO, { title = "Kiro" })
-		else
-			-- Switch session
-			M.set_session(opts.args)
-			vim.notify("Switched to session: " .. opts.args, vim.log.levels.INFO, { title = "Kiro" })
-		end
-	end, {
-		nargs = "?",
-		desc = "Get or set current Kiro terminal session",
-		complete = function()
-			local sessions = M.list_sessions()
-			local names = {}
-			for name, _ in pairs(sessions) do
-				table.insert(names, name)
-			end
-			return names
-		end,
-	})
-
-	vim.api.nvim_create_user_command("KiroSessions", function()
+	vim.api.nvim_create_user_command("KiroBuffers", function()
 		local Palette = require("kiro.palette")
 		Palette.show_sessions()
 	end, { desc = "List all Kiro terminal sessions" })
+	
+	-- Register KiroBuffers in command registry
+	Commands.track_command("KiroBuffers", "")
 
 	-- Register command palette commands
 	Commands.register_palette_commands(config)

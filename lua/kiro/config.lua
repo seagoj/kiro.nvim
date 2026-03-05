@@ -20,7 +20,6 @@ local Error = require("kiro.error")
 --- @field enable_lsp? boolean Enable LSP integration (default: true)
 --- @field use_toggleterm? boolean Use toggleterm.nvim if available (default: false)
 --- @field float_opts? KiroFloatOpts Floating window options
---- @field command_palette? boolean Enable command palette (default: true)
 --- @field palette_backend? "telescope"|"builtin" Palette backend (default: "telescope")
 
 --- @class KiroKeymaps Buffer-local keymap configuration
@@ -52,7 +51,6 @@ M.defaults = {
 	profile = nil,
 	enable_lsp = true,
 	use_toggleterm = false,
-	command_palette = true,
 	palette_backend = "telescope",
 	float_opts = {
 		width = 0.8,
@@ -71,7 +69,7 @@ local function validate(config)
 	
 	-- Boolean options
 	for _, opt in ipairs({ "register_default_commands", "reuse_terminal", "auto_insert_mode", 
-	                       "force_setup", "debug", "enable_lsp", "use_toggleterm", "command_palette" }) do
+	                       "force_setup", "debug", "enable_lsp", "use_toggleterm" }) do
 		if config[opt] ~= nil then
 			local valid, err = Validate.type(config[opt], "boolean", opt)
 			if not valid then

@@ -212,9 +212,8 @@ The plugin provides built-in commands:
 
 | Command | Description |
 |---------|-------------|
-| `:KiroBuffer` | Open Kiro chat with current file context |
-| `:KiroSession [name]` | Get or set current terminal session |
-| `:KiroSessions` | List all terminal sessions |
+| `:KiroBuffer [session]` | Open Kiro chat with current file context (optionally specify session) |
+| `:KiroBuffers` | List all terminal sessions |
 
 All commands support visual selection ranges. Select lines in visual mode and run a command to include only those lines in the context.
 
@@ -248,14 +247,17 @@ require('kiro').setup({
 " Open chat with current file
 :KiroBuffer
 
+" Open chat in a specific session
+:KiroBuffer work
+
 " Open chat with selected code (in visual mode)
 :'<,'>KiroBuffer
 
-" Open chat without any context (empty buffer, no prompt)
-:KiroBuffer
+" Open chat with selected code in a specific session
+:'<,'>KiroBuffer debug
 ```
 
-Kiro will open in all cases - with file context, without file context, or even with no message at all (just opens an empty chat session).
+**Sessions** allow you to maintain multiple independent chat conversations. Each session has its own terminal buffer and history.
 
 ### Lua API
 

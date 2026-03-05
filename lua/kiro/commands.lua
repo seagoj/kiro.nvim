@@ -85,6 +85,65 @@ function M.register(name, prompt, terminal, config)
 		prompt = type(prompt) == "function" and "<function>" or prompt,
 	}
 
+	-- Special handling for KiroBuffer to support session argument
+	if name == "KiroBuffer" then
+		vim.api.nvim_create_user_command(name, function(opts)
+			Logger.debug("Executing command: %s", name)
+			
+			-- Handle session argument
+			if opts.args ~= "" then
+				local State = require("kiro.state")
+				local Window = require("kiro.terminal.window")
+				Window.set_session(opts.args)
+				Logger.debug("Switched to session: %s", opts.args)
+			end
+			
+			local result = build_file_context(opts)
+			
+			if Error.is_err(result) then
+				Logger.error(result.error, { notify = true })
+				return
+			end
+			
+			local context = result.value
+
+			local message
+			if type(prompt) == "function" then
+				message = prompt(opts)
+				if context ~= "" then
+					message = message .. " " .. context
+				end
+			else
+				if prompt ~= "" then
+					message = context ~= "" and (prompt .. " " .. context) or prompt
+				else
+					message = context
+				end
+			end
+
+			Logger.debug("Sending message: %s", message)
+			local open_result = terminal.open(message, config)
+			if Error.is_err(open_result) then
+				Logger.error(Constants.MESSAGES.FAILED_TO_OPEN, { notify = true }, open_result.error)
+			end
+		end, { 
+			range = true,
+			nargs = "?",
+			desc = "Open Kiro chat (optionally specify session name)",
+			complete = function()
+				local kiro = require("kiro")
+				local sessions = kiro.list_sessions()
+				local names = {}
+				for name, _ in pairs(sessions) do
+					table.insert(names, name)
+				end
+				return names
+			end,
+		})
+		return
+	end
+
+	-- Standard command registration for other commands
 	vim.api.nvim_create_user_command(name, function(opts)
 		Logger.debug("Executing command: %s", name)
 		local result = build_file_context(opts)
@@ -116,6 +175,16 @@ function M.register(name, prompt, terminal, config)
 			Logger.error(Constants.MESSAGES.FAILED_TO_OPEN, { notify = true }, open_result.error)
 		end
 	end, { range = true })
+end
+
+--- Track a command in the registry (for commands created outside this module)
+--- @param name string Command name
+--- @param prompt string Prompt text
+function M.track_command(name, prompt)
+	_registered_commands[name] = {
+		name = name,
+		prompt = prompt,
+	}
 end
 
 --- Send message with multiple files as context
@@ -159,10 +228,6 @@ end
 --- Register palette commands
 --- @param config KiroConfigOptions Configuration options
 function M.register_palette_commands(config)
-	if not config.command_palette then
-		return
-	end
-
 	local Palette = require("kiro.palette")
 
 	vim.api.nvim_create_user_command("KiroCommands", function()
