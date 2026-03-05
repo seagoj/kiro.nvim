@@ -40,8 +40,9 @@ return {
 	--   height = 0.9,
 	-- },
 	
-	-- Disable LSP integration for this project
-	-- enable_lsp = false,
+	-- LSP integration is automatic if .kiro/settings/lsp.json exists
+	-- To disable: delete .kiro/settings/lsp.json
+	-- To enable: run 'kiro-cli /code init' in project root
 	
 	-- Use toggleterm if available
 	-- use_toggleterm = true,

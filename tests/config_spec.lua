@@ -7,7 +7,7 @@ describe("kiro.config", function()
 		assert.is_true(Error.is_ok(result))
 		assert.equals("vsplit", result.value.split)
 		assert.is_true(result.value.register_default_commands)
-		assert.is_true(result.value.reuse_terminal)
+		assert.is_true(result.value.auto_insert_mode)
 		assert.is_true(result.value.auto_insert_mode)
 	end)
 
@@ -41,20 +41,19 @@ describe("kiro.config", function()
 	end)
 
 	it("validates boolean options", function()
-		local result = Config.init({ reuse_terminal = "yes" })
+		local result = Config.init({ auto_insert_mode = "yes" })
 		assert.is_true(Error.is_err(result))
-		assert.matches("reuse_terminal", result.error)
+		assert.matches("auto_insert_mode", result.error)
 	end)
 
 	it("accepts valid configuration", function()
 		local result = Config.init({
 			split = "split",
-			reuse_terminal = false,
 			auto_insert_mode = false,
 			register_default_commands = false,
 		})
 		assert.is_true(Error.is_ok(result))
 		assert.equals("split", result.value.split)
-		assert.is_false(result.value.reuse_terminal)
+		assert.is_false(result.value.auto_insert_mode)
 	end)
 end)

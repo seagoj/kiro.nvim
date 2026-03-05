@@ -31,9 +31,7 @@ local function check_configuration(health)
 	
 	-- Display current configuration
 	health.info(string.format("split: %s", config.split))
-	health.info(string.format("reuse_terminal: %s", tostring(config.reuse_terminal)))
 	health.info(string.format("auto_insert_mode: %s", tostring(config.auto_insert_mode)))
-	health.info(string.format("enable_lsp: %s", tostring(config.enable_lsp)))
 	health.info(string.format("register_default_commands: %s", tostring(config.register_default_commands)))
 	health.info(string.format("use_toggleterm: %s", tostring(config.use_toggleterm)))
 	
@@ -66,19 +64,13 @@ end
 local function check_lsp(health)
 	health.start("LSP Integration")
 	
-	local State = require("kiro.state")
-	local config = State.get_config()
-	
-	if not config or not config.enable_lsp then
-		health.info("LSP integration disabled")
+	local lsp_config_path = vim.fn.getcwd() .. "/.kiro/settings/lsp.json"
+	if vim.fn.filereadable(lsp_config_path) ~= 1 then
+		health.info("No LSP config found (run 'kiro-cli /code init' to enable)")
 		return
 	end
 	
-	health.ok("LSP enabled")
-	
-	local lsp_config_path = vim.fn.getcwd() .. "/.kiro/settings/lsp.json"
-	if vim.fn.filereadable(lsp_config_path) == 1 then
-		health.ok(string.format("LSP config found: %s", lsp_config_path))
+	health.ok(string.format("LSP config found: %s", lsp_config_path))
 		
 		-- Try to parse and show active servers
 		local ok, content = pcall(vim.fn.readfile, lsp_config_path)

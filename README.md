@@ -233,14 +233,6 @@ require('telescope').extensions.kiro.sessions()
 require('telescope').extensions.kiro.commands()
 ```
 
-**Configuration:**
-```lua
-require('kiro').setup({
-  command_palette = true,        -- Enable palette (default: true)
-  palette_backend = 'telescope', -- 'telescope' or 'builtin' (default: 'telescope')
-})
-```
-
 ## Usage
 
 ```vim
@@ -373,8 +365,6 @@ Configuration ~
 - INFO auto_insert_mode: true
 - INFO enable_lsp: true
 - INFO register_default_commands: true
-- INFO command_palette: true
-- INFO palette_backend: telescope
 - INFO use_toggleterm: false
 - INFO profile: work
 - INFO terminal_size: 80 columns
@@ -470,11 +460,6 @@ For more help:
 - Read the docs: `:help kiro.nvim`
 - Check issues: https://github.com/seagoj/kiro.nvim/issues
 - Enable debug mode and check `:messages`
-
-## Roadmap
-- [x] Reuse terminal windows
-- [x] Optional toggleterm integration
-- [x] Consume and use any lsps from .kiro/settings/lsp.json
 
 ## License
 

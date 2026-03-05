@@ -9,7 +9,6 @@ describe("kiro.terminal integration", function()
 	before_each(function()
 		config = {
 			split = "vsplit",
-			reuse_terminal = true,
 			auto_insert_mode = false,
 		}
 		Window.close()
@@ -100,19 +99,19 @@ describe("kiro.terminal integration", function()
 		create_stub:revert()
 	end)
 
-	it("does not reuse terminal when configured", function()
+	it("creates new terminal when focus_or_create returns false", function()
 		local executable_stub = stub(vim.fn, "executable")
 		executable_stub.returns(1)
 
 		local focus_stub = stub(Window, "focus_or_create")
+		focus_stub.returns(false)
 		local create_stub = stub(Window, "create")
 		create_stub.returns(Error.ok())
 
-		config.reuse_terminal = false
 		local result = Terminal.open("test message", config)
 
 		assert.is_true(Error.is_ok(result))
-		assert.stub(focus_stub).was_not_called()
+		assert.stub(focus_stub).was_called()
 		assert.stub(create_stub).was_called()
 
 		executable_stub:revert()

@@ -31,6 +31,54 @@ local KNOWN_SERVERS = {
 	solargraph = { cmd = "solargraph", filetypes = { "ruby" } },
 }
 
+--- Check if Mason.nvim is available
+--- @return boolean available
+local function is_mason_available()
+	return pcall(require, "mason-registry")
+end
+
+--- Install LSP server via Mason
+--- @param server_name string Server name
+--- @return boolean success
+local function mason_install(server_name)
+	if not is_mason_available() then
+		return false
+	end
+
+	local ok, registry = pcall(require, "mason-registry")
+	if not ok then
+		return false
+	end
+
+	-- Try to get the package
+	local package_name = server_name:gsub("_", "-") -- Convert lua_ls to lua-ls
+	if not registry.has_package(package_name) then
+		Logger.debug("Mason package not found: %s", package_name)
+		return false
+	end
+
+	local package = registry.get_package(package_name)
+	if package:is_installed() then
+		Logger.debug("Mason package already installed: %s", package_name)
+		return true
+	end
+
+	Logger.info("Installing LSP server via Mason: %s", package_name)
+	vim.notify(string.format("Installing %s via Mason...", package_name), vim.log.levels.INFO, { title = "Kiro LSP" })
+
+	package:install():once("closed", function()
+		if package:is_installed() then
+			Logger.info("Successfully installed: %s", package_name)
+			vim.notify(string.format("Installed %s", package_name), vim.log.levels.INFO, { title = "Kiro LSP" })
+		else
+			Logger.error("Failed to install: %s", package_name)
+			vim.notify(string.format("Failed to install %s", package_name), vim.log.levels.ERROR, { title = "Kiro LSP" })
+		end
+	end)
+
+	return true
+end
+
 --- Check if an LSP server executable is available
 --- @param cmd string|string[] Command or command array
 --- @return boolean available
@@ -83,21 +131,36 @@ function M.load_config()
 	local content = file:read("*all")
 	file:close()
 
-	local ok, config = pcall(vim.json.decode, content)
+	local ok, raw_config = pcall(vim.json.decode, content)
 	if not ok then
-		return nil, "Failed to parse LSP config: " .. tostring(config)
+		return nil, "Failed to parse LSP config: " .. tostring(raw_config)
 	end
 
-	-- Validate server executables
-	for name, server_config in pairs(config) do
-		if server_config and server_config.cmd and not is_executable_available(server_config.cmd) then
-			local cmd_str = type(server_config.cmd) == "table" and server_config.cmd[1] or tostring(server_config.cmd)
-			Logger.warn("LSP server '%s' executable not found: %s", name, cmd_str)
+	-- Handle kiro-cli format: { "languages": { ... } }
+	local config = raw_config.languages or raw_config
+
+	-- Normalize to expected format
+	local normalized = {}
+	for _, server_config in pairs(config) do
+		local server_name = server_config.name
+		if server_name then
+			-- Build command with args
+			local cmd = { server_config.command or server_config.cmd }
+			if server_config.args and #server_config.args > 0 then
+				cmd = vim.list_extend(cmd, server_config.args)
+			end
+
+			normalized[server_name] = {
+				cmd = cmd,
+				filetypes = server_config.file_extensions or server_config.filetypes,
+				root_dir = server_config.root_dir or vim.fn.getcwd(),
+				init_options = server_config.initialization_options or server_config.init_options,
+			}
 		end
 	end
 
-	Logger.debug("Loaded LSP config with %d servers", vim.tbl_count(config))
-	return config, nil
+	Logger.debug("Loaded LSP config with %d servers", vim.tbl_count(normalized))
+	return normalized, nil
 end
 
 --- Setup LSP servers from configuration
@@ -143,6 +206,14 @@ function M.setup_server(name, server_config)
 	-- Check if executable is available
 	if not is_executable_available(server_config.cmd) then
 		local cmd_str = type(server_config.cmd) == "table" and server_config.cmd[1] or tostring(server_config.cmd)
+		
+		-- Try to install via Mason if available
+		if mason_install(name) then
+			Logger.info("Attempting to install '%s' via Mason", name)
+			server_status[name] = { active = false, error = "Installing via Mason..." }
+			return
+		end
+		
 		local error_msg = string.format("LSP server '%s' not found: %s", name, cmd_str)
 		Logger.error(error_msg)
 		server_status[name] = { active = false, error = error_msg }

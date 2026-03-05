@@ -2,12 +2,9 @@
 --- @class Kiro
 local M = {}
 
--- Lazy-loaded modules (loaded on first use)
+-- Module cache for lazy loading
 local _modules = {}
 
---- Lazy load a module
---- @param name string Module name
---- @return any module Loaded module
 local function lazy_require(name)
 	if not _modules[name] then
 		_modules[name] = require(name)
@@ -15,22 +12,27 @@ local function lazy_require(name)
 	return _modules[name]
 end
 
--- Always-loaded modules (needed for setup)
+-- Core modules (always loaded)
 local Config = require("kiro.config")
 local Commands = require("kiro.commands")
 local Logger = require("kiro.logger")
 local Constants = require("kiro.constants")
 local State = require("kiro.state")
 
+-- ============================================================================
+-- Setup & Initialization
+-- ============================================================================
+
 --- Setup the Kiro plugin with optional configuration
 --- @param opts KiroConfigOptions|nil Configuration options
 function M.setup(opts)
-	-- Try to load project-specific config
+	-- Load and merge project config
 	local merged_opts, project_err = Config.merge_with_project(opts)
 	if project_err then
 		Logger.warn("Project config error: %s", project_err)
 	end
 
+	-- Initialize config
 	local result = Config.init(merged_opts)
 	if not result.ok then
 		Logger.error("Invalid config: %s", { notify = true }, result.error)
@@ -38,10 +40,12 @@ function M.setup(opts)
 	end
 	local config = result.value
 
+	-- Skip if already initialized (unless forced)
 	if not config.force_setup and State.is_initialized() then
 		return
 	end
 
+	-- Enable debug logging if requested
 	if config.debug then
 		Logger.enable(Constants.LOG_LEVELS.DEBUG)
 		Logger.debug("Configuration: %s", vim.inspect(config))
@@ -50,32 +54,28 @@ function M.setup(opts)
 	State.set_config(config)
 	State.set_initialized(true)
 
+	-- Register default commands
 	if config.register_default_commands then
 		for name, prompt in pairs(config.default_commands) do
 			M.register_command(name, prompt)
 		end
 	end
 
+	-- Register custom commands
 	for name, prompt in pairs(config.commands) do
 		M.register_command(name, prompt)
 	end
 
-	-- Setup LSP integration if enabled (lazy load only if config exists)
-	-- Setup LSP integration if enabled (lazy load only if config exists)
-	if config.enable_lsp then
-		local lsp_config_path = vim.fn.getcwd() .. "/.kiro/settings/lsp.json"
-		if vim.fn.filereadable(lsp_config_path) == 1 then
-			local Lsp = lazy_require("kiro.lsp")
-			Lsp.setup()
-		end
+	-- Setup LSP if config exists
+	local lsp_config_path = vim.fn.getcwd() .. "/.kiro/settings/lsp.json"
+	if vim.fn.filereadable(lsp_config_path) == 1 then
+		lazy_require("kiro.lsp").setup()
 	end
 
+	-- Register session browser command
 	vim.api.nvim_create_user_command("KiroBuffers", function()
-		local Palette = require("kiro.palette")
-		Palette.show_sessions()
+		lazy_require("kiro.palette").show_sessions()
 	end, { desc = "List all Kiro terminal sessions" })
-	
-	-- Register KiroBuffers in command registry
 	Commands.track_command("KiroBuffers", "")
 
 	-- Register command palette commands
@@ -83,6 +83,10 @@ function M.setup(opts)
 
 	Logger.debug("Kiro initialized successfully")
 end
+
+-- ============================================================================
+-- Command Registration
+-- ============================================================================
 
 --- Register a custom command
 --- @param name string Command name (must be non-empty, PascalCase recommended)
@@ -92,10 +96,9 @@ end
 function M.register_command(name, prompt)
 	local Validate = lazy_require("kiro.validate")
 
-	-- Validate parameters
 	local valid, err = Validate.all({
-		{ Validate.not_empty, name,   "name" },
-		{ Validate.type,      prompt, { "string", "function" }, "prompt" },
+		{ Validate.not_empty, name, "name" },
+		{ Validate.type, prompt, { "string", "function" }, "prompt" },
 	})
 
 	if not valid then
@@ -110,11 +113,13 @@ function M.register_command(name, prompt)
 	end
 
 	Logger.debug("Registering command: %s", name)
-	local Commands = lazy_require("kiro.commands")
-	local Terminal = lazy_require("kiro.terminal")
-	Commands.register(name, prompt, Terminal, State.get_config())
+	Commands.register(name, prompt, lazy_require("kiro.terminal"), State.get_config())
 	return true, nil
 end
+
+-- ============================================================================
+-- Terminal Management
+-- ============================================================================
 
 --- Close the Kiro terminal
 function M.close_terminal()
@@ -136,33 +141,34 @@ function M.resend()
 		return
 	end
 
-	local Window = lazy_require("kiro.terminal.window")
-	local last = Window.get_last_message()
-	if last then
-		Logger.debug("Resending last message")
-		local Terminal = lazy_require("kiro.terminal")
-		local result = Terminal.open(last, State.get_config())
-		if not result.ok then
-			Logger.error(Constants.MESSAGES.FAILED_TO_RESEND, { notify = true }, result.error or "unknown error")
-		end
-	else
+	local last = lazy_require("kiro.terminal.window").get_last_message()
+	if not last then
 		Logger.warn(Constants.MESSAGES.NO_PREVIOUS_MESSAGE, { notify = true })
+		return
+	end
+
+	Logger.debug("Resending last message")
+	local result = lazy_require("kiro.terminal").open(last, State.get_config())
+	if not result.ok then
+		Logger.error(Constants.MESSAGES.FAILED_TO_RESEND, { notify = true }, result.error or "unknown error")
 	end
 end
 
+-- ============================================================================
+-- Multi-File Context
+-- ============================================================================
 
 --- Send message with multiple files as context
 --- @param prompt string Prompt text (can be empty)
---- @param files string[] List of file paths (must be non-empty array)
+--- @param files string[] List of file paths or glob patterns
 --- @return boolean success True if sent successfully
 --- @return string|nil error Error message if failed
 function M.send_with_files(prompt, files)
 	local Validate = lazy_require("kiro.validate")
 
-	-- Validate parameters
 	local valid, err = Validate.all({
 		{ Validate.type, prompt, "string", "prompt" },
-		{ Validate.type, files,  "table",  "files" },
+		{ Validate.type, files, "table", "files" },
 	})
 
 	if not valid then
@@ -181,16 +187,14 @@ function M.send_with_files(prompt, files)
 		return false, Constants.MESSAGES.NOT_INITIALIZED
 	end
 
-	-- Expand glob patterns
+	-- Expand glob patterns to actual files
 	local expanded_files = {}
 	for _, pattern in ipairs(files) do
 		local matches = vim.fn.glob(pattern, false, true)
 		if #matches == 0 then
 			Logger.warn("No files matched pattern: %s", nil, pattern)
 		else
-			for _, file in ipairs(matches) do
-				table.insert(expanded_files, file)
-			end
+			vim.list_extend(expanded_files, matches)
 		end
 	end
 
@@ -201,15 +205,17 @@ function M.send_with_files(prompt, files)
 	end
 
 	Logger.debug("Expanded %d patterns to %d files", #files, #expanded_files)
-	local Commands = lazy_require("kiro.commands")
-	local Terminal = lazy_require("kiro.terminal")
-	local result = Commands.send_with_files(prompt, expanded_files, Terminal, State.get_config())
+	local result = Commands.send_with_files(prompt, expanded_files, lazy_require("kiro.terminal"), State.get_config())
 	if not result.ok then
 		Logger.error(Constants.MESSAGES.FAILED_TO_OPEN, { notify = true }, result.error or "unknown error")
 		return false, result.error
 	end
 	return true, nil
 end
+
+-- ============================================================================
+-- LSP Integration
+-- ============================================================================
 
 --- Get LSP server status
 --- @return table Status of all configured LSP servers
@@ -228,6 +234,10 @@ function M.lsp_detect()
 	return lazy_require("kiro.lsp").detect_servers()
 end
 
+-- ============================================================================
+-- Session Management
+-- ============================================================================
+
 --- Set current terminal session
 --- @param name string Session name (must be non-empty)
 --- @return boolean success True if set successfully
@@ -240,29 +250,25 @@ function M.set_session(name)
 		return false, err
 	end
 
-	local Window = lazy_require("kiro.terminal.window")
-	Window.set_session(name)
+	lazy_require("kiro.terminal.window").set_session(name)
 	return true, nil
 end
 
 --- Get current terminal session name
 --- @return string name Current session name
 function M.get_session()
-	local Window = lazy_require("kiro.terminal.window")
-	return Window.get_current_session()
+	return lazy_require("kiro.terminal.window").get_current_session()
 end
 
 --- List all terminal sessions
 --- @return table<string, {active: boolean, last_message: string|nil}> sessions Map of session names to info
 function M.list_sessions()
-	local Window = lazy_require("kiro.terminal.window")
-	return Window.list_sessions()
+	return lazy_require("kiro.terminal.window").list_sessions()
 end
 
 --- Close all terminal sessions
 function M.close_all_sessions()
-	local Window = lazy_require("kiro.terminal.window")
-	Window.close_all()
+	lazy_require("kiro.terminal.window").close_all()
 end
 
 return M

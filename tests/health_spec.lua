@@ -26,7 +26,6 @@ describe("kiro.health", function()
 		local State = require("kiro.state")
 		State.set_config({
 			split = "vsplit",
-			enable_lsp = true,
 		})
 
 		local config = State.get_config()

@@ -39,7 +39,7 @@ function M.open(message, config)
 	Logger.info(Constants.MESSAGES.LOADING)
 
 	-- Try to reuse existing terminal (only for default backend)
-	if config.reuse_terminal and backend == Window and Window.focus_or_create(split_cmd, config) then
+	if backend == Window and Window.focus_or_create(split_cmd, config) then
 		local result = Window.send_message(message)
 		if Error.is_ok(result) then
 			if config.auto_insert_mode then

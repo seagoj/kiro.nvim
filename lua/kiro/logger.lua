@@ -33,7 +33,7 @@ end
 function M.debug(msg, opts, ...)
 	if should_log(Constants.LOG_LEVELS.DEBUG) then
 		local formatted = string.format("[Kiro Debug] " .. msg, ...)
-		
+
 		if opts and opts.notify then
 			vim.notify(formatted, vim.log.levels.DEBUG, { title = opts.title or "Kiro" })
 		else
@@ -49,7 +49,7 @@ end
 function M.info(msg, opts, ...)
 	if should_log(Constants.LOG_LEVELS.INFO) then
 		local formatted = string.format(msg, ...)
-		
+
 		if opts and opts.notify then
 			vim.notify(formatted, vim.log.levels.INFO, { title = opts.title or "Kiro" })
 		else
@@ -63,8 +63,10 @@ end
 --- @param opts table|nil Options: { notify = boolean, title = string }
 --- @param ... any Additional arguments for string.format
 function M.warn(msg, opts, ...)
+	vim.notify(msg)
+	vim.notify(vim.inspect(...))
 	local formatted = string.format(msg, ...)
-	
+
 	-- Show user notification if requested, otherwise just log
 	if opts and opts.notify then
 		vim.notify(formatted, vim.log.levels.WARN, { title = opts.title or "Kiro" })
@@ -79,7 +81,7 @@ end
 --- @param ... any Additional arguments for string.format
 function M.error(msg, opts, ...)
 	local formatted = string.format(msg, ...)
-	
+
 	-- Show user notification if requested, otherwise just log
 	if opts and opts.notify then
 		vim.notify(formatted, vim.log.levels.ERROR, { title = opts.title or "Kiro" })

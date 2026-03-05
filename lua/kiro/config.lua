@@ -10,17 +10,14 @@ local Error = require("kiro.error")
 --- @field default_commands? table<string, string> Default commands
 --- @field register_default_commands? boolean Enable default commands (default: true)
 --- @field split? "split"|"vsplit"|"float" Split direction (default: "vsplit")
---- @field reuse_terminal? boolean Reuse existing terminal (default: true)
 --- @field auto_insert_mode? boolean Auto enter insert mode (default: true)
 --- @field force_setup? boolean Force setup even if already initialized (default: false)
 --- @field debug? boolean Enable debug logging (default: false)
 --- @field keymaps? KiroKeymaps Buffer-local keymaps
 --- @field terminal_size? number Size of terminal split in lines/columns (10-200)
 --- @field profile? string kiro-cli profile name
---- @field enable_lsp? boolean Enable LSP integration (default: true)
 --- @field use_toggleterm? boolean Use toggleterm.nvim if available (default: false)
 --- @field float_opts? KiroFloatOpts Floating window options
---- @field palette_backend? "telescope"|"builtin" Palette backend (default: "telescope")
 
 --- @class KiroKeymaps Buffer-local keymap configuration
 --- @field close? string|false Keymap to close terminal (default: "<C-q>")
@@ -39,7 +36,6 @@ M.defaults = {
 	default_commands = { KiroBuffer = "" },
 	register_default_commands = true,
 	split = Constants.SPLIT.VERTICAL,
-	reuse_terminal = true,
 	auto_insert_mode = true,
 	force_setup = false,
 	debug = false,
@@ -49,9 +45,7 @@ M.defaults = {
 	},
 	terminal_size = nil,
 	profile = nil,
-	enable_lsp = true,
 	use_toggleterm = false,
-	palette_backend = "telescope",
 	float_opts = {
 		width = 0.8,
 		height = 0.8,
@@ -68,8 +62,8 @@ local function validate(config)
 	local Validate = require("kiro.validate")
 	
 	-- Boolean options
-	for _, opt in ipairs({ "register_default_commands", "reuse_terminal", "auto_insert_mode", 
-	                       "force_setup", "debug", "enable_lsp", "use_toggleterm" }) do
+	for _, opt in ipairs({ "register_default_commands", "auto_insert_mode", 
+	                       "force_setup", "debug", "use_toggleterm" }) do
 		if config[opt] ~= nil then
 			local valid, err = Validate.type(config[opt], "boolean", opt)
 			if not valid then
@@ -101,14 +95,6 @@ local function validate(config)
 		if not valid then
 			return err, string.format("Try a value between %d and %d", 
 				Constants.LIMITS.MIN_TERMINAL_SIZE, Constants.LIMITS.MAX_TERMINAL_SIZE)
-		end
-	end
-	
-	-- Palette backend
-	if config.palette_backend ~= nil then
-		local valid, err = Validate.one_of(config.palette_backend, { "telescope", "builtin" }, "palette_backend")
-		if not valid then
-			return err, "Try: palette_backend = 'telescope' or 'builtin'"
 		end
 	end
 	

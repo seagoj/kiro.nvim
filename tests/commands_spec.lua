@@ -14,7 +14,6 @@ describe("kiro.commands", function()
 		}
 		mock_config = {
 			split = "vsplit",
-			reuse_terminal = true,
 			auto_insert_mode = true,
 		}
 		pcall(vim.api.nvim_del_user_command, "TestCommand")
