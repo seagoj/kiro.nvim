@@ -6,24 +6,30 @@ local conf = require("telescope.config").values
 local actions = require("telescope.actions")
 local action_state = require("telescope.actions.state")
 
-local Terminal = require("kiro.terminal")
-
 --- Create sessions picker
 --- @param opts table|nil Telescope options
 return function(opts)
 	opts = opts or {}
 
-	local sessions = Terminal.get_sessions()
-	if #sessions == 0 then
+	local kiro = require("kiro")
+	local sessions = kiro.list_sessions()
+	
+	if vim.tbl_count(sessions) == 0 then
 		vim.notify("No sessions available", vim.log.levels.INFO)
 		return
+	end
+
+	-- Convert sessions table to array
+	local session_list = {}
+	for name, _ in pairs(sessions) do
+		table.insert(session_list, name)
 	end
 
 	pickers
 		.new(opts, {
 			prompt_title = "Kiro Sessions",
 			finder = finders.new_table({
-				results = sessions,
+				results = session_list,
 				entry_maker = function(entry)
 					return {
 						value = entry,
@@ -38,7 +44,7 @@ return function(opts)
 					actions.close(prompt_bufnr)
 					local selection = action_state.get_selected_entry()
 					if selection then
-						Terminal.set_session(selection.value)
+						kiro.set_session(selection.value)
 						vim.notify("Switched to session: " .. selection.value, vim.log.levels.INFO)
 					end
 				end)

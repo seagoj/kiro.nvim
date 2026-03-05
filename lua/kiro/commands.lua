@@ -6,6 +6,10 @@ local Constants = require("kiro.constants")
 local Logger = require("kiro.logger")
 local Error = require("kiro.error")
 
+--- Registry of all registered commands
+--- @type table<string, {name: string, prompt: string|function}>
+local _registered_commands = {}
+
 --- Build context string with current file and optional line range
 --- @param opts table Command options with range information
 --- @return ErrorResult
@@ -75,6 +79,12 @@ end
 --- @param terminal table Terminal module
 --- @param config KiroConfigOptions Configuration options
 function M.register(name, prompt, terminal, config)
+	-- Add to registry
+	_registered_commands[name] = {
+		name = name,
+		prompt = type(prompt) == "function" and "<function>" or prompt,
+	}
+
 	vim.api.nvim_create_user_command(name, function(opts)
 		Logger.debug("Executing command: %s", name)
 		local result = build_file_context(opts)
@@ -133,6 +143,19 @@ function M.send_with_files(prompt, files, terminal, config)
 	return open_result
 end
 
+--- Get all registered commands
+--- @return table[] Array of command info {name: string, prompt: string}
+function M.get_all_commands()
+	local commands = {}
+	for _, cmd in pairs(_registered_commands) do
+		table.insert(commands, cmd)
+	end
+	table.sort(commands, function(a, b)
+		return a.name < b.name
+	end)
+	return commands
+end
+
 --- Register palette commands
 --- @param config KiroConfigOptions Configuration options
 function M.register_palette_commands(config)
@@ -142,28 +165,9 @@ function M.register_palette_commands(config)
 
 	local Palette = require("kiro.palette")
 
-	vim.api.nvim_create_user_command("KiroHistory", function()
-		Palette.show_history()
-	end, {})
-
-	vim.api.nvim_create_user_command("KiroSearch", function()
-		Palette.show_search()
-	end, {})
-
 	vim.api.nvim_create_user_command("KiroCommands", function()
-		local commands = vim.tbl_keys(vim.api.nvim_get_commands({}))
-		local kiro_commands = vim.tbl_filter(function(cmd)
-			return cmd:match("^Kiro")
-		end, commands)
-
-		vim.ui.select(kiro_commands, {
-			prompt = "Select Kiro command:",
-		}, function(choice)
-			if choice then
-				vim.cmd(choice)
-			end
-		end)
-	end, {})
+		Palette.show_commands()
+	end, { desc = "Show Kiro command palette" })
 end
 
 return M

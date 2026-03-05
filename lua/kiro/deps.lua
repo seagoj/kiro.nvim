@@ -11,7 +11,6 @@ function M.analyze()
 			lazy = {
 				"kiro.terminal",
 				"kiro.commands",
-				"kiro.history",
 				"kiro.lsp",
 				"kiro.validate",
 				"kiro.terminal.window",
@@ -32,7 +31,6 @@ function M.analyze()
 				"kiro.terminal.window",
 				"kiro.logger",
 				"kiro.constants",
-				"kiro.history",
 				"kiro.error",
 			},
 			lazy = { "kiro.terminal.toggleterm" },
@@ -47,10 +45,6 @@ function M.analyze()
 		},
 		["kiro.terminal.shell"] = {
 			always = { "kiro.constants" },
-			lazy = {},
-		},
-		["kiro.history"] = {
-			always = { "kiro.logger" },
 			lazy = {},
 		},
 		["kiro.lsp"] = {

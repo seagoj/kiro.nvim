@@ -220,4 +220,31 @@ describe("kiro.commands", function()
 		assert.is_true(Error.is_err(result))
 		assert.matches("not readable", result.error)
 	end)
+
+	it("tracks registered commands", function()
+		Commands.register("TestCommand1", "Prompt 1", mock_terminal, mock_config)
+		Commands.register("TestCommand2", "Prompt 2", mock_terminal, mock_config)
+
+		local all_commands = Commands.get_all_commands()
+		
+		assert.is_true(#all_commands >= 2)
+		
+		local found_cmd1 = false
+		local found_cmd2 = false
+		for _, cmd in ipairs(all_commands) do
+			if cmd.name == "TestCommand1" then
+				found_cmd1 = true
+				assert.equals("Prompt 1", cmd.prompt)
+			elseif cmd.name == "TestCommand2" then
+				found_cmd2 = true
+				assert.equals("Prompt 2", cmd.prompt)
+			end
+		end
+		
+		assert.is_true(found_cmd1)
+		assert.is_true(found_cmd2)
+
+		pcall(vim.api.nvim_del_user_command, "TestCommand1")
+		pcall(vim.api.nvim_del_user_command, "TestCommand2")
+	end)
 end)

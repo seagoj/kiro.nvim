@@ -215,29 +215,23 @@ The plugin provides built-in commands:
 | `:KiroBuffer` | Open Kiro chat with current file context |
 | `:KiroSession [name]` | Get or set current terminal session |
 | `:KiroSessions` | List all terminal sessions |
-| `:KiroHistory` | Browse command history (telescope/picker) |
-| `:KiroSearch` | Search conversation history |
-| `:KiroCommands` | List all Kiro commands |
-| `:KiroLspStatus` | Show LSP server status (if LSP enabled) |
-| `:KiroCheckConfig` | Validate current configuration |
 
 All commands support visual selection ranges. Select lines in visual mode and run a command to include only those lines in the context.
 
+**Note:** For configuration validation, LSP status, and other diagnostics, use `:checkhealth kiro`.
+
 ### Command Palette
 
-The plugin includes a command palette for browsing history, sessions, and searching conversations. If [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim) is installed, it will use telescope pickers. Otherwise, it falls back to `vim.ui.select`.
+The plugin includes a command palette for browsing sessions. If [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim) is installed, it will use telescope pickers. Otherwise, it falls back to `vim.ui.select`.
 
 **Commands:**
-- `:KiroHistory` - Browse and resend previous commands
-- `:KiroSearch` - Search through conversation history
-- `:KiroCommands` - Quick access to all Kiro commands
+- `:KiroCommands` - Browse all registered commands
 
 **Telescope Integration:**
 ```lua
 -- Use telescope pickers directly
-require('telescope').extensions.kiro.history()
 require('telescope').extensions.kiro.sessions()
-require('telescope').extensions.kiro.search()
+require('telescope').extensions.kiro.commands()
 ```
 
 **Configuration:**
@@ -276,16 +270,6 @@ kiro.close_terminal()
 -- Resend the last message
 kiro.resend()
 
--- Get command history
-local history = kiro.get_history()
-for i, msg in ipairs(history) do
-  print(i, msg)
-end
-
--- Send from history (1 = oldest, -1 = newest)
-kiro.send_from_history(-1)  -- Send most recent
-kiro.send_from_history(1)   -- Send oldest
-
 -- Send with multiple files
 kiro.send_with_files('Explain these files', {
   'lua/kiro/init.lua',
@@ -303,11 +287,8 @@ kiro.send_with_files('Review code', {
   'tests/*_spec.lua',
 })
 
--- Clear terminal and history
+-- Clear terminal
 kiro.clear_terminal()
-
--- Clear history
-kiro.clear_history()
 ```
 
 ## Custom Commands
@@ -370,8 +351,50 @@ Check that kiro-cli is properly installed:
 :checkhealth kiro
 ```
 
-This verifies:
-- kiro-cli is installed and in PATH
+This provides comprehensive diagnostics including:
+- kiro-cli installation status
+- Configuration validation
+- LSP integration status
+- Terminal backend information
+- Registered commands
+- Project configuration
+
+Example output:
+```
+kiro-cli ~
+- OK kiro-cli found in PATH: /usr/local/bin/kiro-cli
+
+Configuration ~
+- OK All configuration options are valid
+- INFO split: vsplit
+- INFO reuse_terminal: true
+- INFO auto_insert_mode: true
+- INFO enable_lsp: true
+- INFO register_default_commands: true
+- INFO command_palette: true
+- INFO palette_backend: telescope
+- INFO use_toggleterm: false
+- INFO profile: work
+- INFO terminal_size: 80 columns
+- INFO keymap close: <C-q>
+- INFO keymap resend: <C-r>
+
+LSP Integration ~
+- OK LSP enabled
+- OK LSP config found: .kiro/settings/lsp.json
+- OK Configured servers: lua_ls, rust_analyzer
+
+Terminal Backend ~
+- OK Using default terminal backend
+
+Commands ~
+- OK 8 commands registered (4 built-in, 4 custom)
+- INFO Custom commands: KiroExplain, KiroFix, KiroTest, KiroDoc
+
+Project Configuration ~
+- OK Project config found: .kiro.lua
+- OK Project config is valid
+```
 
 ## Troubleshooting
 
@@ -448,7 +471,6 @@ For more help:
 
 ## Roadmap
 - [x] Reuse terminal windows
-- [x] Command history/recall
 - [x] Optional toggleterm integration
 - [x] Consume and use any lsps from .kiro/settings/lsp.json
 

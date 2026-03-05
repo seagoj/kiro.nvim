@@ -6,7 +6,6 @@ local Shell = require("kiro.terminal.shell")
 local Window = require("kiro.terminal.window")
 local Logger = require("kiro.logger")
 local Constants = require("kiro.constants")
-local History = require("kiro.history")
 local Error = require("kiro.error")
 
 --- Get appropriate terminal backend
@@ -43,7 +42,6 @@ function M.open(message, config)
 	if config.reuse_terminal and backend == Window and Window.focus_or_create(split_cmd, config) then
 		local result = Window.send_message(message)
 		if Error.is_ok(result) then
-			History.add(message)
 			if config.auto_insert_mode then
 				vim.cmd("startinsert")
 			end
@@ -56,9 +54,7 @@ function M.open(message, config)
 	-- Create new terminal or use toggleterm
 	if backend ~= Window then
 		local result = backend.open(message, config)
-		if Error.is_ok(result) then
-			History.add(message)
-		else
+		if Error.is_err(result) then
 			Logger.error(result.error or "Failed to open terminal", { notify = true, title = "Kiro" })
 		end
 		return result
@@ -74,7 +70,6 @@ function M.open(message, config)
 	end
 
 	Window.send_message(message)
-	History.add(message)
 	if config.auto_insert_mode then
 		vim.cmd("startinsert")
 	end

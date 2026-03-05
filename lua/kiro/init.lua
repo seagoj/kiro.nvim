@@ -47,9 +47,6 @@ function M.setup(opts)
 		Logger.debug("Configuration: %s", vim.inspect(config))
 	end
 
-	local History = lazy_require("kiro.history")
-	History.set_max_size(config.history_size)
-
 	State.set_config(config)
 	State.set_initialized(true)
 
@@ -69,13 +66,7 @@ function M.setup(opts)
 		local lsp_config_path = vim.fn.getcwd() .. "/.kiro/settings/lsp.json"
 		if vim.fn.filereadable(lsp_config_path) == 1 then
 			local Lsp = lazy_require("kiro.lsp")
-			local lsp_ok = Lsp.setup()
-
-			if lsp_ok then
-				vim.api.nvim_create_user_command("KiroLspStatus", function()
-					lazy_require("kiro.lsp").show_status()
-				end, { desc = "Show Kiro LSP server status" })
-			end
+			Lsp.setup()
 		end
 	end
 
@@ -105,44 +96,9 @@ function M.setup(opts)
 	})
 
 	vim.api.nvim_create_user_command("KiroSessions", function()
-		local sessions = M.list_sessions()
-		local current = M.get_session()
-		local lines = { "Kiro Terminal Sessions", string.rep("=", 40), "" }
-
-		if vim.tbl_count(sessions) == 0 then
-			table.insert(lines, "No sessions")
-		else
-			for name, info in pairs(sessions) do
-				local marker = name == current and "* " or "	"
-				local status = info.active and "Active" or "Inactive"
-				table.insert(lines, string.format("%s%s - %s", marker, name, status))
-				if info.last_message then
-					table.insert(lines, string.format("		 Last: %s", info.last_message:sub(1, 50)))
-				end
-			end
-		end
-
-		vim.notify(table.concat(lines, "\n"), vim.log.levels.INFO, { title = "Kiro Sessions" })
+		local Palette = require("kiro.palette")
+		Palette.show_sessions()
 	end, { desc = "List all Kiro terminal sessions" })
-
-	-- Register config validation command
-	vim.api.nvim_create_user_command("KiroCheckConfig", function()
-		local Migrate = require("kiro.migrate")
-		local valid, issues = Migrate.validate_schema(State.get_config() or {})
-
-		if valid then
-			vim.notify("✓ Configuration is valid", vim.log.levels.INFO, { title = "Kiro Config" })
-		else
-			local lines = { "Configuration Issues:", "" }
-			for _, issue in ipairs(issues) do
-				table.insert(lines, string.format("  • %s", issue.message))
-				if issue.suggestion then
-					table.insert(lines, string.format("		 → %s", issue.suggestion))
-				end
-			end
-			vim.notify(table.concat(lines, "\n"), vim.log.levels.WARN, { title = "Kiro Config" })
-		end
-	end, { desc = "Validate Kiro configuration" })
 
 	-- Register command palette commands
 	Commands.register_palette_commands(config)
@@ -192,7 +148,6 @@ end
 function M.clear_terminal()
 	Logger.debug("Clearing terminal")
 	lazy_require("kiro.terminal").close()
-	lazy_require("kiro.history").clear()
 	Logger.info("Terminal cleared")
 end
 
@@ -217,73 +172,6 @@ function M.resend()
 	end
 end
 
---- Get command history
---- @return string[] List of previous messages
-function M.get_history()
-	local History = lazy_require("kiro.history")
-	return History.get_all()
-end
-
---- Clear command history
-function M.clear_history()
-	local History = lazy_require("kiro.history")
-	History.clear()
-	Logger.info("Command history cleared")
-end
-
---- Send a message from history
---- @param index number History index (1 = oldest, -1 = newest, must be non-zero)
---- @return boolean success True if sent successfully
---- @return string|nil error Error message if failed
-function M.send_from_history(index)
-	local Validate = lazy_require("kiro.validate")
-
-	-- Validate parameters
-	local valid, err = Validate.type(index, "number", "index")
-	if not valid then
-		Logger.error("Invalid parameters: %s", { notify = true }, err)
-		return false, err
-	end
-
-	if index == 0 then
-		local err_msg = "index cannot be 0 (use 1 for oldest, -1 for newest)"
-		Logger.error(err_msg, { notify = true })
-		return false, err_msg
-	end
-
-	if not State.is_initialized() then
-		Logger.error(Constants.MESSAGES.NOT_INITIALIZED, { notify = true })
-		return false, Constants.MESSAGES.NOT_INITIALIZED
-	end
-
-	local History = lazy_require("kiro.history")
-	local history = History.get_all()
-
-	if #history == 0 then
-		Logger.warn("No command history", { notify = true })
-		return false, "No command history"
-	end
-
-	if index < 0 then
-		index = #history + index + 1
-	end
-
-	if index < 1 or index > #history then
-		local err_msg = string.format("Invalid history index: %d (history size: %d)", index, #history)
-		Logger.error(err_msg, { notify = true })
-		return false, err_msg
-	end
-
-	local message = history[index]
-	Logger.debug("Sending from history [%d]: %s", index, message)
-	local Terminal = lazy_require("kiro.terminal")
-	local result = Terminal.open(message, State.get_config())
-	if not result.ok then
-		Logger.error(Constants.MESSAGES.FAILED_TO_OPEN, { notify = true }, result.error or "unknown error")
-		return false, result.error
-	end
-	return true, nil
-end
 
 --- Send message with multiple files as context
 --- @param prompt string Prompt text (can be empty)

@@ -39,6 +39,8 @@ end
 --- @param name string Session name
 function M.set_session(name)
 	current_session = name
+	-- Ensure session exists
+	get_session(name)
 	Logger.debug("Switched to session: %s", name)
 end
 
@@ -51,6 +53,9 @@ end
 --- List all sessions
 --- @return table<string, {active: boolean, last_message: string|nil}>
 function M.list_sessions()
+	-- Ensure default session exists
+	get_session("default")
+	
 	local list = {}
 	for name, state in pairs(sessions) do
 		list[name] = {

@@ -25,7 +25,6 @@ editor. Send file context to Kiro and receive responses in a terminal buffer.
 Features:
   • Send current file or selected lines to Kiro
   • Multiple terminal layouts (split, vsplit, float)
-  • Command history with navigation
   • LSP integration from .kiro/settings/lsp.json
   • Toggleterm.nvim support
   • Custom commands with prompts
@@ -115,9 +114,6 @@ Full configuration: >lua
       -- kiro-cli profile name
       profile = nil,
       
-      -- Maximum command history size
-      history_size = 50,
-      
       -- Enable LSP integration from .kiro/settings/lsp.json
       enable_lsp = true,
       
@@ -179,10 +175,6 @@ profile                   (string, optional)
     kiro-cli profile to use. Corresponds to: >
     kiro-cli chat --profile <name>
 <
-
-*kiro-config-history_size*
-history_size              (number, default: 50)
-    Maximum number of messages to keep in command history.
 
 *kiro-config-enable_lsp*
 enable_lsp                (boolean, default: true)
@@ -275,7 +267,6 @@ kiro.setup({opts})
     Example: >lua
         require('kiro').setup({
           split = 'float',
-          history_size = 100,
         })
 <
 
@@ -307,7 +298,7 @@ kiro.close_terminal()
 
 *kiro.clear_terminal()*
 kiro.clear_terminal()
-    Close the terminal and clear command history.
+    Close the terminal.
 
     Example: >lua
         require('kiro').clear_terminal()
@@ -321,42 +312,11 @@ kiro.resend()
         require('kiro').resend()
 <
 
-*kiro.get_history()*
-kiro.get_history()
-    Get command history as an array of strings.
-
-    Returns: ~
-        (table) Array of previous messages, oldest first
+*kiro.send_with_files()*
 
     Example: >lua
         local history = require('kiro').get_history()
         for i, msg in ipairs(history) do
-          print(i, msg)
-        end
-<
-
-*kiro.clear_history()*
-kiro.clear_history()
-    Clear command history without closing terminal.
-
-    Example: >lua
-        require('kiro').clear_history()
-<
-
-*kiro.send_from_history()*
-kiro.send_from_history({index})
-    Send a message from command history.
-
-    Parameters: ~
-        {index}  (number) History index
-                 Positive: 1 = oldest message
-                 Negative: -1 = newest message
-
-    Example: >lua
-        require('kiro').send_from_history(-1)  -- Send most recent
-        require('kiro').send_from_history(1)   -- Send oldest
-<
-
 *kiro.send_with_files()*
 kiro.send_with_files({prompt}, {files})
     Send a message with multiple files as context.
@@ -463,19 +423,6 @@ Multiple Files: ~
       'src/old_version.lua',
       'src/new_version.lua',
     })
-<
-
-History Navigation: ~
->lua
-    local kiro = require('kiro')
-    
-    -- View history
-    local history = kiro.get_history()
-    vim.print(history)
-    
-    -- Send from history
-    kiro.send_from_history(-1)  -- Most recent
-    kiro.send_from_history(1)   -- Oldest
 <
 
 Profile Usage: ~

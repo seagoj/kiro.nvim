@@ -6,7 +6,6 @@ local Shell = require("kiro.terminal.shell")
 local Logger = require("kiro.logger")
 local Constants = require("kiro.constants")
 local Error = require("kiro.error")
-local History = require("kiro.history")
 
 --- @type Terminal|nil
 local term = nil
@@ -82,7 +81,6 @@ function M.open(message, config)
 		terminal:open()
 
 		last_message = message
-		History.add(message)
 		
 		if config.auto_insert_mode then
 			vim.cmd("startinsert")

@@ -17,7 +17,6 @@ local Error = require("kiro.error")
 --- @field keymaps? KiroKeymaps Buffer-local keymaps
 --- @field terminal_size? number Size of terminal split in lines/columns (10-200)
 --- @field profile? string kiro-cli profile name
---- @field history_size? number Maximum command history size (min: 1, default: 50)
 --- @field enable_lsp? boolean Enable LSP integration (default: true)
 --- @field use_toggleterm? boolean Use toggleterm.nvim if available (default: false)
 --- @field float_opts? KiroFloatOpts Floating window options
@@ -51,7 +50,6 @@ M.defaults = {
 	},
 	terminal_size = nil,
 	profile = nil,
-	history_size = 50,
 	enable_lsp = true,
 	use_toggleterm = false,
 	command_palette = true,
@@ -105,17 +103,6 @@ local function validate(config)
 		if not valid then
 			return err, string.format("Try a value between %d and %d", 
 				Constants.LIMITS.MIN_TERMINAL_SIZE, Constants.LIMITS.MAX_TERMINAL_SIZE)
-		end
-	end
-	
-	-- History size
-	if config.history_size ~= nil then
-		local valid, err = Validate.type(config.history_size, "number", "history_size")
-		if not valid then
-			return err, "Try: history_size = 50"
-		end
-		if config.history_size < 1 then
-			return "history_size must be at least 1", "Try: history_size = 50"
 		end
 	end
 	

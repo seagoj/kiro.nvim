@@ -6,7 +6,6 @@ describe("kiro.setup", function()
 		-- Clean up any existing commands
 		pcall(vim.api.nvim_del_user_command, "KiroBuffer")
 		pcall(vim.api.nvim_del_user_command, "KiroTest")
-		pcall(vim.api.nvim_del_user_command, "KiroLspStatus")
 		pcall(vim.api.nvim_del_user_command, "KiroSession")
 		pcall(vim.api.nvim_del_user_command, "KiroSessions")
 	end)
