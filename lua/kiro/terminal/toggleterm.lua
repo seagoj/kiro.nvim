@@ -26,7 +26,7 @@ local function get_terminal(config)
 	end
 
 	local Terminal = require("toggleterm.terminal").Terminal
-	
+
 	-- Determine direction based on split config
 	local direction
 	if config.split == "float" then
@@ -36,7 +36,7 @@ local function get_terminal(config)
 	else
 		direction = "vertical"
 	end
-	
+
 	local size = config.terminal_size or (direction == "horizontal" and 15 or 80)
 
 	term = Terminal:new({
@@ -81,7 +81,7 @@ function M.open(message, config)
 		terminal:open()
 
 		last_message = message
-		
+
 		if config.auto_insert_mode then
 			vim.cmd("startinsert")
 		end

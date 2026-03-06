@@ -13,9 +13,9 @@ describe("kiro.terminal.toggleterm", function()
 		executable_stub.returns(0)
 
 		local result = Toggleterm.open("test", { split = "vsplit" })
-		
+
 		executable_stub:revert()
-		
+
 		local Error = require("kiro.error")
 		assert.is_true(Error.is_err(result))
 		assert.matches("kiro%-cli not found", result.error)

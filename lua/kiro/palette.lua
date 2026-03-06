@@ -2,8 +2,6 @@
 --- @module kiro.palette
 local M = {}
 
-local Terminal = require("kiro.terminal")
-
 --- Check if telescope is available
 --- @return boolean
 local function has_telescope()
@@ -24,11 +22,11 @@ function M.show_sessions(opts)
 
 	-- Fallback to vim.ui.select
 	local kiro = require("kiro")
-	
+
 	if show_all then
 		-- Show both active and saved sessions
 		local items = {}
-		
+
 		-- Add active terminal sessions
 		local active_sessions = kiro.list_sessions()
 		if vim.tbl_count(active_sessions) > 0 then
@@ -37,9 +35,9 @@ function M.show_sessions(opts)
 				table.insert(items, { type = "active", name = name })
 			end
 		end
-		
+
 		-- Add saved sessions
-		local saved_sessions, err = kiro.get_saved_sessions()
+		local saved_sessions = kiro.get_saved_sessions()
 		if saved_sessions and #saved_sessions > 0 then
 			if #items > 0 then
 				table.insert(items, { type = "separator" })
@@ -49,12 +47,12 @@ function M.show_sessions(opts)
 				table.insert(items, { type = "saved", session = session })
 			end
 		end
-		
+
 		if #items == 0 then
 			vim.notify("No sessions available", vim.log.levels.INFO)
 			return
 		end
-		
+
 		vim.ui.select(items, {
 			prompt = "Select session:",
 			format_item = function(item)
@@ -63,18 +61,22 @@ function M.show_sessions(opts)
 				elseif item.type == "separator" then
 					return ""
 				elseif item.type == "active" then
-					return "  • " .. item.name
+					return "	• " .. item.name
 				elseif item.type == "saved" then
-					return string.format("  • [%s] %s - %s (%d msgs)", 
-						item.session.id:sub(1, 8), item.session.time_ago, 
-						item.session.preview, item.session.msg_count)
+					return string.format(
+						"  • [%s] %s - %s (%d msgs)",
+						item.session.id:sub(1, 8),
+						item.session.time_ago,
+						item.session.preview,
+						item.session.msg_count
+					)
 				end
 			end,
 		}, function(choice)
 			if not choice or choice.type == "header" or choice.type == "separator" then
 				return
 			end
-			
+
 			if choice.type == "active" then
 				-- Open/focus the terminal for this session
 				kiro.set_session(choice.name)
@@ -85,7 +87,6 @@ function M.show_sessions(opts)
 				kiro.resume()
 			end
 		end)
-		
 	elseif show_saved then
 		-- Show saved sessions from kiro-cli
 		local sessions, err = kiro.get_saved_sessions()
@@ -93,17 +94,16 @@ function M.show_sessions(opts)
 			vim.notify("Failed to list sessions: " .. (err or "unknown error"), vim.log.levels.ERROR)
 			return
 		end
-		
+
 		if #sessions == 0 then
 			vim.notify("No saved sessions found", vim.log.levels.INFO)
 			return
 		end
-		
+
 		vim.ui.select(sessions, {
 			prompt = "Select session to resume:",
 			format_item = function(item)
-				return string.format("[%s] %s - %s (%d msgs)", 
-					item.id:sub(1, 8), item.time_ago, item.preview, item.msg_count)
+				return string.format("[%s] %s - %s (%d msgs)", item.id:sub(1, 8), item.time_ago, item.preview, item.msg_count)
 			end,
 		}, function(choice)
 			if choice then
@@ -115,7 +115,7 @@ function M.show_sessions(opts)
 	else
 		-- Show active terminal sessions
 		local sessions = kiro.list_sessions()
-		
+
 		if vim.tbl_count(sessions) == 0 then
 			vim.notify("No active sessions", vim.log.levels.INFO)
 			return
@@ -154,7 +154,7 @@ function M.show_commands(opts)
 	-- Fallback to vim.ui.select
 	local Commands = require("kiro.commands")
 	local commands = Commands.get_all_commands()
-	
+
 	if #commands == 0 then
 		vim.notify("No Kiro commands registered", vim.log.levels.INFO)
 		return

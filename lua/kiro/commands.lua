@@ -89,22 +89,21 @@ function M.register(name, prompt, terminal, config)
 	if name == "KiroBuffer" then
 		vim.api.nvim_create_user_command(name, function(opts)
 			Logger.debug("Executing command: %s", name)
-			
+
 			-- Handle session argument
 			if opts.args ~= "" then
-				local State = require("kiro.state")
 				local Window = require("kiro.terminal.window")
 				Window.set_session(opts.args)
 				Logger.debug("Switched to session: %s", opts.args)
 			end
-			
+
 			local result = build_file_context(opts)
-			
+
 			if Error.is_err(result) then
 				Logger.error(result.error, { notify = true })
 				return
 			end
-			
+
 			local context = result.value
 
 			local message
@@ -126,7 +125,7 @@ function M.register(name, prompt, terminal, config)
 			if Error.is_err(open_result) then
 				Logger.error(Constants.MESSAGES.FAILED_TO_OPEN, { notify = true }, open_result.error)
 			end
-		end, { 
+		end, {
 			range = true,
 			nargs = "?",
 			desc = "Open Kiro chat (optionally specify session name)",
@@ -134,8 +133,8 @@ function M.register(name, prompt, terminal, config)
 				local kiro = require("kiro")
 				local sessions = kiro.list_sessions()
 				local names = {}
-				for name, _ in pairs(sessions) do
-					table.insert(names, name)
+				for session_name, _ in pairs(sessions) do
+					table.insert(names, session_name)
 				end
 				return names
 			end,
@@ -147,12 +146,12 @@ function M.register(name, prompt, terminal, config)
 	vim.api.nvim_create_user_command(name, function(opts)
 		Logger.debug("Executing command: %s", name)
 		local result = build_file_context(opts)
-		
+
 		if Error.is_err(result) then
 			Logger.error(result.error, { notify = true })
 			return
 		end
-		
+
 		local context = result.value
 
 		local message
@@ -196,7 +195,7 @@ end
 function M.send_with_files(prompt, files, terminal, config)
 	Logger.debug("Sending with %d files", #files)
 	local result = build_multi_file_context(files)
-	
+
 	if Error.is_err(result) then
 		Logger.error(result.error, { notify = true })
 		return result
@@ -204,7 +203,7 @@ function M.send_with_files(prompt, files, terminal, config)
 
 	local message = prompt == "" and result.value or prompt .. " " .. result.value
 	Logger.debug("Sending message: %s", message)
-	
+
 	local open_result = terminal.open(message, config)
 	if Error.is_err(open_result) then
 		Logger.error(Constants.MESSAGES.FAILED_TO_OPEN, { notify = true }, open_result.error)
@@ -227,7 +226,7 @@ end
 
 --- Register palette commands
 --- @param config KiroConfigOptions Configuration options
-function M.register_palette_commands(config)
+function M.register_palette_commands()
 	local Palette = require("kiro.palette")
 
 	vim.api.nvim_create_user_command("KiroCommands", function()
@@ -239,56 +238,60 @@ end
 function M.register_resume_commands()
 	local kiro = require("kiro")
 	local Palette = require("kiro.palette")
-	
+
 	vim.api.nvim_create_user_command("KiroResume", function()
 		kiro.resume()
 	end, { desc = "Resume last Kiro conversation" })
-	
+
 	vim.api.nvim_create_user_command("KiroResumePicker", function()
 		Palette.show_sessions({ show_saved = true })
 	end, { desc = "Pick a Kiro session to resume" })
-	
+
 	vim.api.nvim_create_user_command("KiroListSessions", function()
 		local sessions, err = kiro.get_saved_sessions()
 		if not sessions then
 			vim.notify("Failed to list sessions: " .. (err or "unknown error"), vim.log.levels.ERROR)
 			return
 		end
-		
+
 		if #sessions == 0 then
 			vim.notify("No saved sessions found", vim.log.levels.INFO)
 			return
 		end
-		
+
 		local lines = { "Saved Kiro Sessions:", "" }
 		for _, session in ipairs(sessions) do
-			table.insert(lines, string.format("[%s] %s - %s (%d msgs)", 
-				session.id:sub(1, 8), session.time_ago, session.preview, session.msg_count))
+			table.insert(
+				lines,
+				string.format("[%s] %s - %s (%d msgs)", session.id:sub(1, 8), session.time_ago, session.preview, session.msg_count)
+			)
 		end
-		
+
 		vim.notify(table.concat(lines, "\n"), vim.log.levels.INFO)
 	end, { desc = "List all saved Kiro sessions" })
-	
+
 	vim.api.nvim_create_user_command("KiroDeleteSession", function(opts)
 		local session_id = opts.args
 		if session_id == "" then
 			vim.notify("Usage: :KiroDeleteSession <session_id>", vim.log.levels.ERROR)
 			return
 		end
-		
+
 		local success, err = kiro.delete_session(session_id)
 		if not success then
 			vim.notify("Failed to delete session: " .. (err or "unknown error"), vim.log.levels.ERROR)
 		else
 			vim.notify("Session deleted: " .. session_id, vim.log.levels.INFO)
 		end
-	end, { 
+	end, {
 		nargs = 1,
 		desc = "Delete a Kiro session by ID",
 		complete = function()
 			local sessions, _ = kiro.get_saved_sessions()
-			if not sessions then return {} end
-			
+			if not sessions then
+				return {}
+			end
+
 			local ids = {}
 			for _, session in ipairs(sessions) do
 				table.insert(ids, session.id)

@@ -81,7 +81,7 @@ function M.setup(opts)
 
 	-- Register command palette commands
 	Commands.register_palette_commands(config)
-	
+
 	-- Register session resume commands
 	Commands.register_resume_commands()
 
@@ -279,24 +279,23 @@ end
 --- @return boolean success
 --- @return string|nil error
 function M.resume()
-	local State = lazy_require("kiro.state")
 	if not State.is_initialized() then
 		return false, "Kiro not initialized. Call setup() first."
 	end
-	
+
 	local config = State.get_config()
 	local Shell = lazy_require("kiro.terminal.shell")
 	local Terminal = lazy_require("kiro.terminal")
-	
+
 	local cmd = Shell.build_command("", config.profile, { resume = true })
 	Logger.debug("Resuming last session: %s", cmd)
-	
+
 	local result = Terminal.open_with_command(cmd, config)
 	if Error.is_err(result) then
 		Logger.error(result.error, { notify = true })
 		return false, result.error
 	end
-	
+
 	return true
 end
 
@@ -304,24 +303,23 @@ end
 --- @return boolean success
 --- @return string|nil error
 function M.resume_picker()
-	local State = lazy_require("kiro.state")
 	if not State.is_initialized() then
 		return false, "Kiro not initialized. Call setup() first."
 	end
-	
+
 	local config = State.get_config()
 	local Shell = lazy_require("kiro.terminal.shell")
 	local Terminal = lazy_require("kiro.terminal")
-	
+
 	local cmd = Shell.build_command("", config.profile, { resume_picker = true })
 	Logger.debug("Opening session picker: %s", cmd)
-	
+
 	local result = Terminal.open_with_command(cmd, config)
 	if Error.is_err(result) then
 		Logger.error(result.error, { notify = true })
 		return false, result.error
 	end
-	
+
 	return true
 end
 
@@ -331,11 +329,11 @@ end
 function M.get_saved_sessions()
 	local Shell = lazy_require("kiro.terminal.shell")
 	local output = vim.fn.system(Constants.CLI.EXECUTABLE .. " " .. Constants.CLI.COMMAND .. " --list-sessions")
-	
+
 	if vim.v.shell_error ~= 0 then
 		return nil, "Failed to list sessions: " .. output
 	end
-	
+
 	local sessions = Shell.parse_sessions(output)
 	return sessions
 end
@@ -350,16 +348,15 @@ function M.delete_session(session_id)
 	if not valid then
 		return false, err
 	end
-	
-	local cmd = string.format("%s %s --delete-session %s", 
-		Constants.CLI.EXECUTABLE, Constants.CLI.COMMAND, session_id)
+
+	local cmd = string.format("%s %s --delete-session %s", Constants.CLI.EXECUTABLE, Constants.CLI.COMMAND, session_id)
 	Logger.debug("Deleting session: %s", cmd)
-	
+
 	local output = vim.fn.system(cmd)
 	if vim.v.shell_error ~= 0 then
 		return false, "Failed to delete session: " .. output
 	end
-	
+
 	Logger.info("Session deleted: %s", session_id)
 	return true
 end

@@ -123,37 +123,37 @@ describe("kiro.setup", function()
 
 	it("expands glob patterns in send_with_files", function()
 		kiro.setup({ force_setup = true })
-		
+
 		-- Create temp files
 		local file1 = vim.fn.tempname() .. ".lua"
 		local file2 = vim.fn.tempname() .. ".lua"
 		vim.fn.writefile({}, file1)
 		vim.fn.writefile({}, file2)
-		
+
 		local glob_stub = stub(vim.fn, "glob")
 		glob_stub.returns({ file1, file2 })
-		
-		local success, err = kiro.send_with_files("Test", { "*.lua" })
-		
+
+		local _, err = kiro.send_with_files("Test", { "*.lua" })
+
 		-- Clean up
 		vim.fn.delete(file1)
 		vim.fn.delete(file2)
 		glob_stub:revert()
-		
+
 		-- Should succeed (terminal open will fail but glob expansion works)
 		assert.is_nil(err)
 	end)
 
 	it("handles no matches for glob pattern", function()
 		kiro.setup({ force_setup = true })
-		
+
 		local glob_stub = stub(vim.fn, "glob")
 		glob_stub.returns({})
-		
+
 		local success, err = kiro.send_with_files("Test", { "/nonexistent/*.lua" })
-		
+
 		glob_stub:revert()
-		
+
 		assert.is_false(success)
 		assert.matches("No files found", err)
 	end)

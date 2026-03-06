@@ -206,14 +206,14 @@ function M.setup_server(name, server_config)
 	-- Check if executable is available
 	if not is_executable_available(server_config.cmd) then
 		local cmd_str = type(server_config.cmd) == "table" and server_config.cmd[1] or tostring(server_config.cmd)
-		
+
 		-- Try to install via Mason if available
 		if mason_install(name) then
 			Logger.info("Attempting to install '%s' via Mason", name)
 			server_status[name] = { active = false, error = "Installing via Mason..." }
 			return
 		end
-		
+
 		local error_msg = string.format("LSP server '%s' not found: %s", name, cmd_str)
 		Logger.error(error_msg)
 		server_status[name] = { active = false, error = error_msg }
@@ -291,36 +291,18 @@ function M.show_status()
 	-- Create buffer
 	local buf = vim.api.nvim_create_buf(false, true)
 	vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
-	vim.bo[buf].modifiable = false
-	vim.bo[buf].filetype = "kiro-lsp-status"
+	vim.bo[buf].modifiable = false -- luacheck: ignore
+	vim.bo[buf].filetype = "kiro-lsp-status" -- luacheck: ignore
 
 	-- Calculate window size
-	local width = 60
-	local height = #lines
 	local ui = vim.api.nvim_list_uis()[1]
-	
+
 	-- Check if UI is available (not in headless mode)
 	if not ui then
 		-- Fallback to printing status
 		print(table.concat(lines, "\n"))
 		return
 	end
-
-	local row = math.floor((ui.height - height) / 2)
-	local col = math.floor((ui.width - width) / 2)
-
-	-- Open floating window
-	local win = vim.api.nvim_open_win(buf, true, {
-		relative = "editor",
-		width = width,
-		height = height,
-		row = row,
-		col = col,
-		style = "minimal",
-		border = "rounded",
-		title = " Kiro LSP Status ",
-		title_pos = "center",
-	})
 
 	-- Close on q or <Esc>
 	vim.keymap.set("n", "q", "<cmd>close<cr>", { buffer = buf, silent = true })

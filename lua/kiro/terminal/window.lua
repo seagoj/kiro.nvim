@@ -55,7 +55,7 @@ end
 function M.list_sessions()
 	-- Ensure default session exists
 	get_session("default")
-	
+
 	local list = {}
 	for name, state in pairs(sessions) do
 		list[name] = {
@@ -97,7 +97,7 @@ end
 --- @return boolean True if terminal was focused or window created
 function M.focus_or_create(split_cmd, config, session_name)
 	local state = get_session(session_name)
-	
+
 	if state.winid and vim.api.nvim_win_is_valid(state.winid) then
 		vim.api.nvim_set_current_win(state.winid)
 		return true
@@ -123,7 +123,7 @@ end
 --- @return ErrorResult
 function M.send_message(message, session_name)
 	local state = get_session(session_name)
-	
+
 	if not state.bufnr or not vim.api.nvim_buf_is_valid(state.bufnr) then
 		return Error.err(Constants.MESSAGES.TERMINAL_BUFFER_INVALID, Error.codes.TERMINAL_INVALID)
 	end
@@ -142,7 +142,7 @@ function M.send_message(message, session_name)
 		state.last_message = message
 		Logger.debug("Message sent to terminal (session: %s)", state.name)
 	end
-	
+
 	return result
 end
 
@@ -154,7 +154,7 @@ end
 --- @return ErrorResult
 function M.create(command, split_cmd, config, session_name)
 	local state = get_session(session_name)
-	
+
 	local result = Error.wrap(function()
 		if split_cmd == "float" then
 			local bufnr = vim.api.nvim_create_buf(false, true)
@@ -229,7 +229,7 @@ end
 --- @param session_name string|nil Session name
 function M.setup_keymaps(config, session_name)
 	local state = get_session(session_name)
-	
+
 	if not state.bufnr or not vim.api.nvim_buf_is_valid(state.bufnr) then
 		return
 	end
@@ -260,15 +260,15 @@ end
 --- @param session_name string|nil Session name
 function M.close(session_name)
 	local state = get_session(session_name)
-	
+
 	if state.winid and vim.api.nvim_win_is_valid(state.winid) then
 		vim.api.nvim_win_close(state.winid, true)
 	end
-	
+
 	if state.bufnr and vim.api.nvim_buf_is_valid(state.bufnr) then
 		vim.api.nvim_buf_delete(state.bufnr, { force = true })
 	end
-	
+
 	state.bufnr = nil
 	state.winid = nil
 	Logger.debug("Terminal closed (session: %s)", state.name)

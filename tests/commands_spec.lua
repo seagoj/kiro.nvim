@@ -35,7 +35,7 @@ describe("kiro.commands", function()
 		vim.cmd("enew")
 
 		local open_called = false
-		mock_terminal.open = function(msg, cfg)
+		mock_terminal.open = function(msg)
 			open_called = true
 			assert.equals("Test prompt", msg)
 			return { ok = true }
@@ -52,9 +52,9 @@ describe("kiro.commands", function()
 		vim.cmd("enew")
 
 		local open_called = false
-		mock_terminal.open = function(msg, cfg)
+		mock_terminal.open = function(msg)
 			open_called = true
-			assert.equals("", msg)  -- Empty message
+			assert.equals("", msg) -- Empty message
 			return { ok = true }
 		end
 
@@ -225,9 +225,9 @@ describe("kiro.commands", function()
 		Commands.register("TestCommand2", "Prompt 2", mock_terminal, mock_config)
 
 		local all_commands = Commands.get_all_commands()
-		
+
 		assert.is_true(#all_commands >= 2)
-		
+
 		local found_cmd1 = false
 		local found_cmd2 = false
 		for _, cmd in ipairs(all_commands) do
@@ -239,7 +239,7 @@ describe("kiro.commands", function()
 				assert.equals("Prompt 2", cmd.prompt)
 			end
 		end
-		
+
 		assert.is_true(found_cmd1)
 		assert.is_true(found_cmd2)
 

@@ -11,13 +11,13 @@ local M = {}
 function M.type(value, expected_type, param_name)
 	local actual_type = type(value)
 	local types = type(expected_type) == "table" and expected_type or { expected_type }
-	
+
 	for _, t in ipairs(types) do
 		if actual_type == t then
 			return true, nil
 		end
 	end
-	
+
 	local expected_str = table.concat(types, " or ")
 	return false, string.format("%s must be %s, got %s", param_name, expected_str, actual_type)
 end
@@ -49,8 +49,13 @@ function M.one_of(value, options, param_name)
 			return true, nil
 		end
 	end
-	
-	local opts_str = table.concat(vim.tbl_map(function(o) return string.format("'%s'", o) end, options), ", ")
+
+	local opts_str = table.concat(
+		vim.tbl_map(function(o)
+			return string.format("'%s'", o)
+		end, options),
+		", "
+	)
 	return false, string.format("%s must be one of: %s (got '%s')", param_name, opts_str, tostring(value))
 end
 
@@ -81,13 +86,13 @@ function M.has_keys(value, required_keys, param_name)
 	if type(value) ~= "table" then
 		return false, string.format("%s must be a table", param_name)
 	end
-	
+
 	for _, key in ipairs(required_keys) do
 		if value[key] == nil then
 			return false, string.format("%s is missing required key '%s'", param_name, key)
 		end
 	end
-	
+
 	return true, nil
 end
 

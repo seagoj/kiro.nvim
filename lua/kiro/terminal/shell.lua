@@ -17,11 +17,11 @@ end
 function M.parse_sessions(output)
 	local sessions = {}
 	local current_id = nil
-	
+
 	for line in output:gmatch("[^\n]+") do
 		-- Strip ANSI codes
 		line = line:gsub("\27%[[0-9;]*m", "")
-		
+
 		-- Check for session ID line
 		local id = line:match("Chat SessionId:%s*(.+)")
 		if id then
@@ -40,7 +40,7 @@ function M.parse_sessions(output)
 			end
 		end
 	end
-	
+
 	return sessions
 end
 
@@ -52,21 +52,21 @@ end
 function M.build_command(message, profile, opts)
 	opts = opts or {}
 	local cmd = Constants.CLI.EXECUTABLE .. " " .. Constants.CLI.COMMAND
-	
+
 	if opts.resume then
 		cmd = cmd .. " --resume"
 	elseif opts.resume_picker then
 		cmd = cmd .. " --resume-picker"
 	end
-	
+
 	if profile then
 		cmd = cmd .. " " .. Constants.CLI.PROFILE_FLAG .. " " .. profile
 	end
-	
+
 	if message ~= "" then
 		return string.format("%s '%s'", cmd, M.escape_arg(message))
 	end
-	
+
 	return cmd
 end
 

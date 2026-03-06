@@ -18,38 +18,37 @@ end
 --- @param health table Health API
 local function check_configuration(health)
 	health.start("Configuration")
-	
+
 	local State = require("kiro.state")
 	local config = State.get_config()
-	
+
 	if not config then
 		health.warn("Plugin not initialized", { "Run require('kiro').setup()" })
 		return
 	end
-	
+
 	health.ok("All configuration options are valid")
-	
+
 	-- Display current configuration
 	health.info(string.format("split: %s", config.split))
 	health.info(string.format("auto_insert_mode: %s", tostring(config.auto_insert_mode)))
 	health.info(string.format("register_default_commands: %s", tostring(config.register_default_commands)))
 	health.info(string.format("use_toggleterm: %s", tostring(config.use_toggleterm)))
-	
+
 	if config.profile then
 		health.info(string.format("profile: %s", config.profile))
 	end
-	
+
 	if config.terminal_size then
-		health.info(string.format("terminal_size: %d %s", 
-			config.terminal_size,
-			config.split == "split" and "lines" or "columns"))
+		health.info(
+			string.format("terminal_size: %d %s", config.terminal_size, config.split == "split" and "lines" or "columns")
+		)
 	end
-	
+
 	if config.float_opts then
-		health.info(string.format("float_opts: width=%.1f, height=%.1f", 
-			config.float_opts.width, config.float_opts.height))
+		health.info(string.format("float_opts: width=%.1f, height=%.1f", config.float_opts.width, config.float_opts.height))
 	end
-	
+
 	-- Show keymaps
 	if config.keymaps.close then
 		health.info(string.format("keymap close: %s", config.keymaps.close))
@@ -63,33 +62,27 @@ end
 --- @param health table Health API
 local function check_lsp(health)
 	health.start("LSP Integration")
-	
+
 	local lsp_config_path = vim.fn.getcwd() .. "/.kiro/settings/lsp.json"
 	if vim.fn.filereadable(lsp_config_path) ~= 1 then
 		health.info("No LSP config found (run 'kiro-cli /code init' to enable)")
 		return
 	end
-	
+
 	health.ok(string.format("LSP config found: %s", lsp_config_path))
-		
-		-- Try to parse and show active servers
-		local ok, content = pcall(vim.fn.readfile, lsp_config_path)
-		if ok then
-			local parse_ok, lsp_config = pcall(vim.json.decode, table.concat(content, "\n"))
-			if parse_ok and type(lsp_config) == "table" then
-				local servers = vim.tbl_keys(lsp_config)
-				if #servers > 0 then
-					health.ok(string.format("Configured servers: %s", table.concat(servers, ", ")))
-				end
-			else
-				health.error("Failed to parse LSP config", { "Check JSON syntax in .kiro/settings/lsp.json" })
+
+	-- Try to parse and show active servers
+	local ok, content = pcall(vim.fn.readfile, lsp_config_path)
+	if ok then
+		local parse_ok, lsp_config = pcall(vim.json.decode, table.concat(content, "\n"))
+		if parse_ok and type(lsp_config) == "table" then
+			local servers = vim.tbl_keys(lsp_config)
+			if #servers > 0 then
+				health.ok(string.format("Configured servers: %s", table.concat(servers, ", ")))
 			end
+		else
+			health.error("Failed to parse LSP config", { "Check JSON syntax in .kiro/settings/lsp.json" })
 		end
-	else
-		health.warn("LSP config not found", { 
-			"Run 'kiro-cli /code init' in project root",
-			"Or create .kiro/settings/lsp.json manually"
-		})
 	end
 end
 
@@ -97,21 +90,21 @@ end
 --- @param health table Health API
 local function check_terminal_backend(health)
 	health.start("Terminal Backend")
-	
+
 	local State = require("kiro.state")
 	local config = State.get_config()
-	
+
 	if not config then
 		return
 	end
-	
+
 	if config.use_toggleterm then
 		local has_toggleterm = pcall(require, "toggleterm")
 		if has_toggleterm then
 			health.ok("Using toggleterm.nvim backend")
 		else
 			health.warn("toggleterm.nvim not found, using default backend", {
-				"Install toggleterm.nvim or set use_toggleterm = false"
+				"Install toggleterm.nvim or set use_toggleterm = false",
 			})
 		end
 	else
@@ -127,21 +120,21 @@ end
 --- @param health table Health API
 local function check_commands(health)
 	health.start("Commands")
-	
+
 	local Commands = require("kiro.commands")
 	local all_commands = Commands.get_all_commands()
-	
+
 	if #all_commands == 0 then
 		health.warn("No commands registered")
 		return
 	end
-	
+
 	-- Count built-in vs custom
 	local builtin = { "KiroBuffer", "KiroBuffers" }
 	local builtin_count = 0
 	local custom_count = 0
 	local custom_names = {}
-	
+
 	for _, cmd in ipairs(all_commands) do
 		local is_builtin = false
 		for _, name in ipairs(builtin) do
@@ -150,7 +143,7 @@ local function check_commands(health)
 				break
 			end
 		end
-		
+
 		if is_builtin then
 			builtin_count = builtin_count + 1
 		else
@@ -158,10 +151,9 @@ local function check_commands(health)
 			table.insert(custom_names, cmd.name)
 		end
 	end
-	
-	health.ok(string.format("%d commands registered (%d built-in, %d custom)", 
-		#all_commands, builtin_count, custom_count))
-	
+
+	health.ok(string.format("%d commands registered (%d built-in, %d custom)", #all_commands, builtin_count, custom_count))
+
 	if #custom_names > 0 then
 		health.info(string.format("Custom commands: %s", table.concat(custom_names, ", ")))
 	end
@@ -171,16 +163,16 @@ end
 --- @param health table Health API
 local function check_project_config(health)
 	health.start("Project Configuration")
-	
+
 	local project_config_path = vim.fn.getcwd() .. "/.kiro.lua"
 	if vim.fn.filereadable(project_config_path) == 1 then
 		health.ok(string.format("Project config found: %s", project_config_path))
-		
+
 		-- Try to load it
 		local ok, result = pcall(dofile, project_config_path)
 		if ok and type(result) == "table" then
 			health.ok("Project config is valid")
-			
+
 			-- Show some key settings
 			if result.profile then
 				health.info(string.format("Project profile: %s", result.profile))
@@ -189,9 +181,9 @@ local function check_project_config(health)
 				health.info(string.format("Project split: %s", result.split))
 			end
 		else
-			health.error("Failed to load project config", { 
+			health.error("Failed to load project config", {
 				"Check Lua syntax in .kiro.lua",
-				"Ensure it returns a table"
+				"Ensure it returns a table",
 			})
 		end
 	else

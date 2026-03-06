@@ -15,30 +15,30 @@ return function(opts)
 	local show_all = opts.show_all or false
 
 	local kiro = require("kiro")
-	
+
 	if show_all then
 		-- Show both active and saved sessions
 		local items = {}
-		
+
 		-- Add active terminal sessions
 		local active_sessions = kiro.list_sessions()
 		for name, _ in pairs(active_sessions) do
 			table.insert(items, { type = "active", name = name })
 		end
-		
+
 		-- Add saved sessions
-		local saved_sessions, err = kiro.get_saved_sessions()
+		local saved_sessions = kiro.get_saved_sessions()
 		if saved_sessions then
 			for _, session in ipairs(saved_sessions) do
 				table.insert(items, { type = "saved", session = session })
 			end
 		end
-		
+
 		if #items == 0 then
 			vim.notify("No sessions available", vim.log.levels.INFO)
 			return
 		end
-		
+
 		local displayer = entry_display.create({
 			separator = " ",
 			items = {
@@ -47,7 +47,7 @@ return function(opts)
 				{ remaining = true },
 			},
 		})
-		
+
 		pickers
 			.new(opts, {
 				prompt_title = "All Kiro Sessions",
@@ -75,7 +75,7 @@ return function(opts)
 							end
 							ordinal = "saved " .. s.id .. " " .. s.preview
 						end
-						
+
 						return {
 							value = entry,
 							display = display_text,
@@ -104,7 +104,6 @@ return function(opts)
 				end,
 			})
 			:find()
-			
 	elseif show_saved then
 		-- Show saved sessions from kiro-cli
 		local sessions, err = kiro.get_saved_sessions()
@@ -112,20 +111,20 @@ return function(opts)
 			vim.notify("Failed to list sessions: " .. (err or "unknown error"), vim.log.levels.ERROR)
 			return
 		end
-		
+
 		if #sessions == 0 then
 			vim.notify("No saved sessions found", vim.log.levels.INFO)
 			return
 		end
-		
+
 		pickers
 			.new(opts, {
 				prompt_title = "Saved Kiro Sessions",
 				finder = finders.new_table({
 					results = sessions,
 					entry_maker = function(entry)
-						local display = string.format("[%s] %s - %s (%d msgs)", 
-							entry.id:sub(1, 8), entry.time_ago, entry.preview, entry.msg_count)
+						local display =
+							string.format("[%s] %s - %s (%d msgs)", entry.id:sub(1, 8), entry.time_ago, entry.preview, entry.msg_count)
 						return {
 							value = entry,
 							display = display,
@@ -150,7 +149,7 @@ return function(opts)
 	else
 		-- Show active terminal sessions
 		local sessions = kiro.list_sessions()
-		
+
 		if vim.tbl_count(sessions) == 0 then
 			vim.notify("No active sessions", vim.log.levels.INFO)
 			return

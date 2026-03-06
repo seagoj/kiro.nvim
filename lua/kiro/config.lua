@@ -60,10 +60,15 @@ M.defaults = {
 --- @return string|nil suggestion Suggestion to fix the error
 local function validate(config)
 	local Validate = require("kiro.validate")
-	
+
 	-- Boolean options
-	for _, opt in ipairs({ "register_default_commands", "auto_insert_mode", 
-	                       "force_setup", "debug", "use_toggleterm" }) do
+	for _, opt in ipairs({
+		"register_default_commands",
+		"auto_insert_mode",
+		"force_setup",
+		"debug",
+		"use_toggleterm",
+	}) do
 		if config[opt] ~= nil then
 			local valid, err = Validate.type(config[opt], "boolean", opt)
 			if not valid then
@@ -71,7 +76,7 @@ local function validate(config)
 			end
 		end
 	end
-	
+
 	-- Split option
 	if config.split ~= nil then
 		local valid, err = Validate.one_of(
@@ -83,7 +88,7 @@ local function validate(config)
 			return err, "Try: split = 'vsplit' (vertical), 'split' (horizontal), or 'float'"
 		end
 	end
-	
+
 	-- Terminal size
 	if config.terminal_size ~= nil then
 		local valid, err = Validate.range(
@@ -93,11 +98,15 @@ local function validate(config)
 			"terminal_size"
 		)
 		if not valid then
-			return err, string.format("Try a value between %d and %d", 
-				Constants.LIMITS.MIN_TERMINAL_SIZE, Constants.LIMITS.MAX_TERMINAL_SIZE)
+			return err,
+				string.format(
+					"Try a value between %d and %d",
+					Constants.LIMITS.MIN_TERMINAL_SIZE,
+					Constants.LIMITS.MAX_TERMINAL_SIZE
+				)
 		end
 	end
-	
+
 	-- Profile
 	if config.profile ~= nil then
 		local valid, err = Validate.type(config.profile, "string", "profile")
@@ -105,7 +114,7 @@ local function validate(config)
 			return err, "Try: profile = 'work' or profile = 'personal'"
 		end
 	end
-	
+
 	-- Keymaps
 	if config.keymaps ~= nil then
 		local valid, err = Validate.type(config.keymaps, "table", "keymaps")
@@ -113,14 +122,14 @@ local function validate(config)
 			return err, "Try: keymaps = { close = '<C-q>', resend = '<C-r>' }"
 		end
 	end
-	
+
 	-- Float options
 	if config.float_opts ~= nil then
 		local valid, err = Validate.type(config.float_opts, "table", "float_opts")
 		if not valid then
 			return err, "Try: float_opts = { width = 0.8, height = 0.8 }"
 		end
-		
+
 		-- Validate float_opts fields
 		for _, field in ipairs({ "width", "height" }) do
 			if config.float_opts[field] ~= nil then
@@ -135,7 +144,7 @@ local function validate(config)
 			end
 		end
 	end
-	
+
 	-- Commands validation
 	if config.commands ~= nil then
 		local valid, err = Validate.type(config.commands, "table", "commands")
@@ -143,7 +152,7 @@ local function validate(config)
 			return err, "Try: commands = { MyCommand = 'prompt text' }"
 		end
 	end
-	
+
 	return nil, nil
 end
 
@@ -174,20 +183,20 @@ end
 function M.load_project_config(project_root)
 	project_root = project_root or vim.fn.getcwd()
 	local config_path = project_root .. "/.kiro.lua"
-	
+
 	if vim.fn.filereadable(config_path) == 0 then
 		return nil, nil -- Not an error, just no project config
 	end
-	
+
 	local ok, result = pcall(dofile, config_path)
 	if not ok then
 		return nil, string.format("Failed to load .kiro.lua: %s", result)
 	end
-	
+
 	if type(result) ~= "table" then
 		return nil, ".kiro.lua must return a table"
 	end
-	
+
 	return result, nil
 end
 
@@ -201,11 +210,11 @@ function M.merge_with_project(global_opts, project_root)
 	if err then
 		return global_opts or {}, err
 	end
-	
+
 	if not project_config then
 		return global_opts or {}, nil
 	end
-	
+
 	-- Project config takes precedence
 	return vim.tbl_deep_extend("force", global_opts or {}, project_config), nil
 end
