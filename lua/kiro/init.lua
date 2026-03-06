@@ -18,6 +18,7 @@ local Commands = require("kiro.commands")
 local Logger = require("kiro.logger")
 local Constants = require("kiro.constants")
 local State = require("kiro.state")
+local Error = require("kiro.error")
 
 -- ============================================================================
 -- Setup & Initialization
@@ -72,14 +73,17 @@ function M.setup(opts)
 		lazy_require("kiro.lsp").setup()
 	end
 
-	-- Register session browser command
+	-- Register session browser command (unified: active + saved)
 	vim.api.nvim_create_user_command("KiroBuffers", function()
-		lazy_require("kiro.palette").show_sessions()
-	end, { desc = "List all Kiro terminal sessions" })
+		lazy_require("kiro.palette").show_sessions({ show_all = true })
+	end, { desc = "List all Kiro sessions (active and saved)" })
 	Commands.track_command("KiroBuffers", "")
 
 	-- Register command palette commands
 	Commands.register_palette_commands(config)
+	
+	-- Register session resume commands
+	Commands.register_resume_commands()
 
 	Logger.debug("Kiro initialized successfully")
 end
@@ -269,6 +273,95 @@ end
 --- Close all terminal sessions
 function M.close_all_sessions()
 	lazy_require("kiro.terminal.window").close_all()
+end
+
+--- Resume last conversation
+--- @return boolean success
+--- @return string|nil error
+function M.resume()
+	local State = lazy_require("kiro.state")
+	if not State.is_initialized() then
+		return false, "Kiro not initialized. Call setup() first."
+	end
+	
+	local config = State.get_config()
+	local Shell = lazy_require("kiro.terminal.shell")
+	local Terminal = lazy_require("kiro.terminal")
+	
+	local cmd = Shell.build_command("", config.profile, { resume = true })
+	Logger.debug("Resuming last session: %s", cmd)
+	
+	local result = Terminal.open_with_command(cmd, config)
+	if Error.is_err(result) then
+		Logger.error(result.error, { notify = true })
+		return false, result.error
+	end
+	
+	return true
+end
+
+--- Open interactive session picker
+--- @return boolean success
+--- @return string|nil error
+function M.resume_picker()
+	local State = lazy_require("kiro.state")
+	if not State.is_initialized() then
+		return false, "Kiro not initialized. Call setup() first."
+	end
+	
+	local config = State.get_config()
+	local Shell = lazy_require("kiro.terminal.shell")
+	local Terminal = lazy_require("kiro.terminal")
+	
+	local cmd = Shell.build_command("", config.profile, { resume_picker = true })
+	Logger.debug("Opening session picker: %s", cmd)
+	
+	local result = Terminal.open_with_command(cmd, config)
+	if Error.is_err(result) then
+		Logger.error(result.error, { notify = true })
+		return false, result.error
+	end
+	
+	return true
+end
+
+--- List all saved sessions
+--- @return table|nil sessions Array of session objects
+--- @return string|nil error
+function M.get_saved_sessions()
+	local Shell = lazy_require("kiro.terminal.shell")
+	local output = vim.fn.system(Constants.CLI.EXECUTABLE .. " " .. Constants.CLI.COMMAND .. " --list-sessions")
+	
+	if vim.v.shell_error ~= 0 then
+		return nil, "Failed to list sessions: " .. output
+	end
+	
+	local sessions = Shell.parse_sessions(output)
+	return sessions
+end
+
+--- Delete a session by ID
+--- @param session_id string Session ID to delete
+--- @return boolean success
+--- @return string|nil error
+function M.delete_session(session_id)
+	local Validate = lazy_require("kiro.validate")
+	local valid, err = Validate.not_empty(session_id, "session_id")
+	if not valid then
+		return false, err
+	end
+	
+	local cmd = string.format("%s %s --delete-session %s", 
+		Constants.CLI.EXECUTABLE, Constants.CLI.COMMAND, session_id)
+	Logger.debug("Deleting session: %s", cmd)
+	
+	local output = vim.fn.system(cmd)
+	if vim.v.shell_error ~= 0 then
+		return false, "Failed to delete session: " .. output
+	end
+	
+	Logger.info("Session deleted: %s", session_id)
+	return true
 end
 
 return M

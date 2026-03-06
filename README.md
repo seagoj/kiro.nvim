@@ -213,11 +213,41 @@ The plugin provides built-in commands:
 | Command | Description |
 |---------|-------------|
 | `:KiroBuffer [session]` | Open Kiro chat with current file context (optionally specify session) |
-| `:KiroBuffers` | List all terminal sessions |
+| `:KiroBuffers` | List all sessions (active terminals and saved conversations) |
+| `:KiroResume` | Resume last conversation |
+| `:KiroResumePicker` | Interactively select a conversation to resume |
+| `:KiroListSessions` | List all saved sessions |
+| `:KiroDeleteSession <id>` | Delete a saved session by ID |
 
 All commands support visual selection ranges. Select lines in visual mode and run a command to include only those lines in the context.
 
 **Note:** For configuration validation, LSP status, and other diagnostics, use `:checkhealth kiro`.
+
+### Session Management
+
+Kiro CLI automatically saves conversation history. You can resume previous conversations:
+
+```vim
+" Browse all sessions (active terminals + saved conversations)
+:KiroBuffers
+
+" Resume last conversation
+:KiroResume
+
+" Pick from available sessions
+:KiroResumePicker
+
+" List all saved sessions
+:KiroListSessions
+
+" Delete a session
+:KiroDeleteSession abc123
+```
+
+**Sessions** allow you to maintain multiple independent chat conversations. Each session has its own history and context.
+
+- **Active terminals** - In-memory terminal buffers in current Neovim session
+- **Saved conversations** - Persistent conversation history from kiro-cli (across all projects)
 
 ### Command Palette
 

@@ -8,12 +8,11 @@ This directory contains specifications for features and improvements to kiro.nvi
 - `error-message-redundancy.md` - Fixed redundant error messages
 
 ### 📋 Proposed
-- `session-persistence.md` - Save/restore sessions across restarts
+- `session-persistence.md` - Expose kiro-cli's session resume features
 - `syntax-highlighting.md` - Syntax highlighting for code blocks in responses
 - `context-window-management.md` - Smart handling of large contexts
 - `file-preview.md` - Preview files before sending with glob patterns
 - `diff-integration.md` - Interactive code change application
-- `command-palette.md` - Telescope/fzf integration for browsing
 - `configuration-profiles.md` - Multiple named configuration sets
 - `conversation-export.md` - Export conversations to markdown/JSON
 - `enhanced-keymaps.md` - Additional keyboard shortcuts
@@ -21,7 +20,7 @@ This directory contains specifications for features and improvements to kiro.nvi
 ## Priority
 
 **High Priority:**
-1. session-persistence.md
+1. session-persistence.md (leverage kiro-cli's built-in session management)
 2. syntax-highlighting.md
 3. diff-integration.md
 

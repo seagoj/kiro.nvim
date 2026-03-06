@@ -81,4 +81,43 @@ function M.close()
 	Window.close()
 end
 
+--- Open terminal with custom command (for resume/resume-picker)
+--- @param command string Full kiro-cli command
+--- @param config KiroConfigOptions Configuration options
+--- @return ErrorResult
+function M.open_with_command(command, config)
+	if vim.fn.executable(Constants.CLI.EXECUTABLE) == 0 then
+		Logger.error(Constants.MESSAGES.KIRO_CLI_NOT_FOUND, { notify = true, title = "Kiro" })
+		return Error.err(Constants.MESSAGES.KIRO_CLI_NOT_FOUND, Error.codes.CLI_NOT_FOUND)
+	end
+
+	local backend = get_backend(config)
+	local split_cmd = config.split
+
+	Logger.info(Constants.MESSAGES.LOADING)
+
+	-- Create new terminal
+	if backend ~= Window then
+		-- For toggleterm, we need to adapt the command
+		local result = backend.open("", config)
+		if Error.is_err(result) then
+			Logger.error(result.error or "Failed to open terminal", { notify = true, title = "Kiro" })
+		end
+		return result
+	end
+
+	-- Default backend
+	Logger.debug("Creating terminal with command: %s", command)
+	local result = Window.create(command, split_cmd, config)
+	if Error.is_err(result) then
+		Logger.error(result.error or "Failed to create terminal", { notify = true, title = "Kiro" })
+		return result
+	end
+
+	if config.auto_insert_mode then
+		vim.cmd("startinsert")
+	end
+	return Error.ok()
+end
+
 return M

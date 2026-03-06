@@ -235,4 +235,67 @@ function M.register_palette_commands(config)
 	end, { desc = "Show Kiro command palette" })
 end
 
+--- Register session resume commands
+function M.register_resume_commands()
+	local kiro = require("kiro")
+	local Palette = require("kiro.palette")
+	
+	vim.api.nvim_create_user_command("KiroResume", function()
+		kiro.resume()
+	end, { desc = "Resume last Kiro conversation" })
+	
+	vim.api.nvim_create_user_command("KiroResumePicker", function()
+		Palette.show_sessions({ show_saved = true })
+	end, { desc = "Pick a Kiro session to resume" })
+	
+	vim.api.nvim_create_user_command("KiroListSessions", function()
+		local sessions, err = kiro.get_saved_sessions()
+		if not sessions then
+			vim.notify("Failed to list sessions: " .. (err or "unknown error"), vim.log.levels.ERROR)
+			return
+		end
+		
+		if #sessions == 0 then
+			vim.notify("No saved sessions found", vim.log.levels.INFO)
+			return
+		end
+		
+		local lines = { "Saved Kiro Sessions:", "" }
+		for _, session in ipairs(sessions) do
+			table.insert(lines, string.format("[%s] %s - %s (%d msgs)", 
+				session.id:sub(1, 8), session.time_ago, session.preview, session.msg_count))
+		end
+		
+		vim.notify(table.concat(lines, "\n"), vim.log.levels.INFO)
+	end, { desc = "List all saved Kiro sessions" })
+	
+	vim.api.nvim_create_user_command("KiroDeleteSession", function(opts)
+		local session_id = opts.args
+		if session_id == "" then
+			vim.notify("Usage: :KiroDeleteSession <session_id>", vim.log.levels.ERROR)
+			return
+		end
+		
+		local success, err = kiro.delete_session(session_id)
+		if not success then
+			vim.notify("Failed to delete session: " .. (err or "unknown error"), vim.log.levels.ERROR)
+		else
+			vim.notify("Session deleted: " .. session_id, vim.log.levels.INFO)
+		end
+	end, { 
+		nargs = 1,
+		desc = "Delete a Kiro session by ID",
+		complete = function()
+			local sessions, _ = kiro.get_saved_sessions()
+			if not sessions then return {} end
+			
+			local ids = {}
+			for _, session in ipairs(sessions) do
+				table.insert(ids, session.id)
+			end
+			return ids
+		end,
+	})
+end
+
 return M
