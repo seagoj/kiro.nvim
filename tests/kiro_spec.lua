@@ -133,14 +133,20 @@ describe("kiro.setup", function()
 		local glob_stub = stub(vim.fn, "glob")
 		glob_stub.returns({ file1, file2 })
 
+		-- Stub terminal to prevent actual execution
+		local Terminal = require("kiro.terminal")
+		local terminal_stub = stub(Terminal, "open")
+		terminal_stub.returns(require("kiro.error").ok())
+
 		local _, err = kiro.send_with_files("Test", { "*.lua" })
 
 		-- Clean up
 		vim.fn.delete(file1)
 		vim.fn.delete(file2)
 		glob_stub:revert()
+		terminal_stub:revert()
 
-		-- Should succeed (terminal open will fail but glob expansion works)
+		-- Should succeed (glob expansion works)
 		assert.is_nil(err)
 	end)
 
