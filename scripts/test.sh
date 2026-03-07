@@ -23,6 +23,14 @@ echo "Running tests..."
 nvim --headless \
 	--cmd "let g:loaded_netrw = 1 | let g:loaded_netrwPlugin = 1" \
 	-u "$SCRIPT_DIR/minimal_init.lua" \
-	-c "PlenaryBustedDirectory $PROJECT_ROOT/tests/ { minimal_init = '$SCRIPT_DIR/minimal_init.lua' }"
+	-c "PlenaryBustedDirectory $PROJECT_ROOT/tests/ { minimal_init = '$SCRIPT_DIR/minimal_init.lua' }" 2>&1 | tee test_output.log
 
+# Check if tests failed by looking for "Failed : " with non-zero count
+if grep -q "Failed : [1-9]" test_output.log; then
+	echo "Tests failed!"
+	rm -f test_output.log
+	exit 1
+fi
+
+rm -f test_output.log
 echo "Tests completed successfully!"
