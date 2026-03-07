@@ -21,6 +21,7 @@ trap cleanup EXIT INT TERM
 # Run tests
 echo "Running tests..."
 nvim --headless \
+	--cmd "let g:loaded_netrw = 1 | let g:loaded_netrwPlugin = 1" \
 	-u "$SCRIPT_DIR/minimal_init.lua" \
 	-c "PlenaryBustedDirectory $PROJECT_ROOT/tests/ { minimal_init = '$SCRIPT_DIR/minimal_init.lua' }"
 
